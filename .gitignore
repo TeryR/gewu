@@ -1,0 +1,39 @@
+# 密钥与配置（红级，绝不入库）
+llm.json
+.env
+.ingest-token
+
+# 真实数据（红级）
+mirror.db
+mirror.db-shm
+mirror.db-wal
+reports/
+tests/golden/日报-事业部A.json
+tests/golden/总部经营数据源2026.json
+uploads/
+
+# 构建产物
+node_modules/
+__pycache__/
+*.pyc
+desktop/src-tauri/target/
+
+# 内部脚本（开源审查后再定）
+_patch_boot.py
+_patch_tabs.py
+_patch_tests.py
+recon.py
+dump.py
+.cache/
+
+# 真实客户数据（红级，本地保留、永不入库）
+samples/示例A部项目日报0829.xlsx
+samples/日报-事业部A.xlsx
+samples/总部经营数据源2026.xlsx
+samples/质量整改示例表.xlsx
+tests/golden/示例A部项目日报0829.json
+tests/golden/日报-事业部A.json
+tests/golden/总部经营数据源2026.json
+tests/golden/后整理不后整理布 浸胶、贴合 物性对比20261001.json
+tests/golden/质量整改示例表.json
+tests/sandbox/

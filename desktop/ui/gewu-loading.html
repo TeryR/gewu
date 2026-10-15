@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<title>格物 Gewu</title>
+<style>
+body{margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+     font:14px/1.8 system-ui;background:linear-gradient(135deg,#0f172a,#1e3a5f);color:#e2e8f0}
+.logo{font-size:34px;font-weight:700;letter-spacing:6px}
+.logo span{background:linear-gradient(90deg,#60a5fa,#93c5fd);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:#94a3b8;font-size:13px;margin:6px 0 26px}
+.spin{width:34px;height:34px;border:3px solid #334155;border-top-color:#60a5fa;border-radius:50%;
+      animation:r 0.9s linear infinite;margin-bottom:18px}
+@keyframes r{to{transform:rotate(360deg)}}
+.hint{color:#64748b;font-size:12px;position:fixed;bottom:18px}
+</style></head>
+<body>
+<div class="logo">格物 <span>Gewu</span></div>
+<div class="sub">复杂表格理解工作台 · 本地引擎启动中</div>
+<div class="spin"></div>
+<div id="msg">正在唤醒本地解析引擎（首次约 20~60 秒）…</div>
+<div class="hint">Gewu/1.0 · 识玥 shyue</div>
+<script>
+// 就绪即跳转；失败提示（Rust 侧也会把本页定向到 ?failed=1）
+if(location.search.includes('failed=1')){
+  document.getElementById('msg').innerHTML='⚠ 本地引擎未能在 120 秒内就绪：请确认本机已安装 Python 及项目依赖（详见 desktop/README.md），或直接用「启动确认页.bat」启动。';
+  document.querySelector('.spin').style.display='none';
+}
+(async()=>{for(let i=0;i<300;i++){
+  try{const r=await fetch('http://127.0.0.1:8765/api/status');if(r.ok){location.replace('http://127.0.0.1:8765/');return}}catch(e){}
+  await new Promise(s=>setTimeout(s,500))}})();
+</script>
+</body></html>

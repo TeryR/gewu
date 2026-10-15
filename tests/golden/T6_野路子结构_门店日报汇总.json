@@ -1,0 +1,274 @@
+{
+ "sanitized": false,
+ "sheets": [
+  {
+   "blocks": [
+    {
+     "annotation": true,
+     "bbox": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.9,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      2,
+      1,
+      21,
+      8
+     ],
+     "header": {
+      "cross": true,
+      "data_zone": [
+       5,
+       21
+      ],
+      "depth": 2,
+      "dups": [],
+      "floating": [
+       2
+      ],
+      "keys": [
+       1,
+       2,
+       3
+      ],
+      "leaves": 8,
+      "rows": [
+       3,
+       4
+      ],
+      "summary": [
+       13
+      ],
+      "title": null
+     },
+     "n_cols": 8,
+     "n_rows": 20,
+     "score": 0.65,
+     "summary_tail": false,
+     "type": "table"
+    },
+    {
+     "annotation": true,
+     "bbox": [
+      22,
+      1,
+      22,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.9,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      23,
+      1,
+      33,
+      8
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       23,
+       33
+      ],
+      "depth": 0,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1,
+       2,
+       3
+      ],
+      "leaves": 8,
+      "rows": [],
+      "summary": [
+       30
+      ],
+      "title": null
+     },
+     "n_cols": 8,
+     "n_rows": 11,
+     "score": 0.85,
+     "summary_tail": false,
+     "type": "table"
+    },
+    {
+     "annotation": true,
+     "bbox": [
+      35,
+      1,
+      35,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.9,
+     "summary_tail": false,
+     "type": "note"
+    }
+   ],
+   "n_merged": 13,
+   "name": "台账",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      3,
+      3,
+      3,
+      3
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      5,
+      2,
+      5,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      7,
+      2,
+      7,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      9,
+      2,
+      9,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      11,
+      2,
+      11,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      13,
+      2,
+      13,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      15,
+      2,
+      15,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      17,
+      2,
+      17,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      20,
+      2,
+      24,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 5,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    }
+   ],
+   "n_merged": 0,
+   "name": "备忘（散落版）",
+   "visible": true
+  }
+ ]
+}

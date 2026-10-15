@@ -1,0 +1,117 @@
+{
+  "vocab": {
+    "summary_prefixes": [
+      "合计",
+      "总计",
+      "小计",
+      "汇总"
+    ],
+    "summary_exact": [
+      "累计"
+    ],
+    "ratio_keywords": [
+      "率",
+      "占比",
+      "人均",
+      "平均",
+      "均价",
+      "单价"
+    ],
+    "diagonal_symbols": [
+      "/",
+      "\\",
+      "︿",
+      "丿"
+    ],
+    "decor_class": "|\\-—_=·*\\s\\d%．.",
+    "note_marker_chars": [
+      "："
+    ],
+    "table_note_markers": [
+      "本表",
+      "以上",
+      "注：",
+      "备注：",
+      "数据截至",
+      "来源"
+    ]
+  },
+  "segment": {
+    "annotation": {
+      "max_cells": 2,
+      "min_text_len": 6,
+      "dense_neighbor": 3,
+      "header_rep_frac": 0.5,
+      "text_row_min_cells": 5,
+      "row_note_min_len": 6
+    },
+    "bridge": {
+      "max_gap_rows": 2,
+      "min_overlap": 0.7
+    },
+    "attach": {
+      "max_gap_rows": 2,
+      "min_overlap": 0.5,
+      "min_table_rows": 2
+    },
+    "classify": {
+      "note_max_cells": 6,
+      "note_text_ratio": 0.8,
+      "note2_avg_len": 20,
+      "note2_text_ratio": 0.7,
+      "note2_max_cells": 80,
+      "table_num_ratio": 0.25,
+      "ledger_min_cells": 8,
+      "ledger_first_row_cov": 0.6,
+      "ledger_min_rows": 3
+    }
+  },
+  "score": {
+    "base": 0.4,
+    "table": 0.15,
+    "border_closed_at": 0.8,
+    "border_closed": 0.2,
+    "border_partial_at": 0.5,
+    "border_partial": 0.1,
+    "num_rich_at": 0.5,
+    "num_rich": 0.1,
+    "neat_first_row_at": 0.9,
+    "neat_first_row": 0.1,
+    "note_text_at": 0.9,
+    "note_text": 0.15,
+    "merge_cover_at": 0.5,
+    "merge_cover_pen": 0.15,
+    "sparse_fill_at": 0.35,
+    "sparse_fill_pen": 0.15
+  },
+  "headers": {
+    "text_ratio": 0.6,
+    "max_header_rows": 6,
+    "scan_window": 8,
+    "title_max_cells": 3,
+    "float_scan_rows": 5,
+    "float_min_top_cov": 4,
+    "float_cov_ratio": 0.6,
+    "ledger_min_rows": 2,
+    "key_ratio": 0.8,
+    "key_int_max": 999999,
+    "label_max_len": 30
+  },
+  "extract": {
+    "fast_values_min_mb": 1
+  },
+  "query": {
+    "tie_rel_tol": 0.005,
+    "tie_abs_tol": 0.05,
+    "naive_rel_tol": 0.005,
+    "naive_abs_tol": 0.5,
+    "naive_min_rows": 2,
+    "lookup_show_rows": 8,
+    "analyze_rows": 25,
+    "analyze_stats_cols": 12
+  },
+  "serve": {
+    "max_rows": 400,
+    "max_cols": 48
+  }
+}

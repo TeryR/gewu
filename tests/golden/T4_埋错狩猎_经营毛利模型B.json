@@ -1,0 +1,339 @@
+{
+ "sanitized": false,
+ "sheets": [
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      2,
+      2,
+      2,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      4,
+      2,
+      6,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 3,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      8,
+      2,
+      12,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 5,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      14,
+      2,
+      16,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 3,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    }
+   ],
+   "n_merged": 0,
+   "name": "说明",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      4,
+      1,
+      16,
+      10
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       5,
+       16
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1,
+       2
+      ],
+      "leaves": 10,
+      "rows": [
+       4
+      ],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 10,
+     "n_rows": 13,
+     "score": 0.95,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "月度数据",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      4,
+      1,
+      17,
+      12
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       5,
+       17
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1
+      ],
+      "leaves": 12,
+      "rows": [
+       4
+      ],
+      "summary": [
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14,
+       15,
+       16,
+       17
+      ],
+      "title": null
+     },
+     "n_cols": 12,
+     "n_rows": 14,
+     "score": 0.85,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "毛利分析",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      4,
+      1,
+      17,
+      10
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       5,
+       17
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1
+      ],
+      "leaves": 10,
+      "rows": [
+       4
+      ],
+      "summary": [
+       17
+      ],
+      "title": null
+     },
+     "n_cols": 10,
+     "n_rows": 14,
+     "score": 0.85,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "费用分析",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      4,
+      1,
+      18,
+      11
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       5,
+       18
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1
+      ],
+      "leaves": 11,
+      "rows": [
+       4
+      ],
+      "summary": [
+       17
+      ],
+      "title": null
+     },
+     "n_cols": 11,
+     "n_rows": 15,
+     "score": 0.85,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "预算对比",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": true,
+     "bbox": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.9,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      3,
+      1,
+      15,
+      4
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       4,
+       15
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1,
+       2
+      ],
+      "leaves": 4,
+      "rows": [
+       3
+      ],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 4,
+     "n_rows": 13,
+     "score": 0.95,
+     "summary_tail": false,
+     "type": "table"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      17,
+      1,
+      19,
+      2
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       18,
+       19
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1,
+       2
+      ],
+      "leaves": 2,
+      "rows": [
+       17
+      ],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 2,
+     "n_rows": 3,
+     "score": 0.75,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "校验",
+   "visible": true
+  }
+ ]
+}

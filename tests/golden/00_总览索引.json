@@ -1,0 +1,100 @@
+{
+ "sanitized": false,
+ "sheets": [
+  {
+   "blocks": [
+    {
+     "annotation": true,
+     "bbox": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.9,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      3,
+      1,
+      27,
+      4
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       4,
+       27
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "leaves": 4,
+      "rows": [
+       3
+      ],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 4,
+     "n_rows": 25,
+     "score": 0.85,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "总览",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      3,
+      1,
+      9,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 7,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    }
+   ],
+   "n_merged": 0,
+   "name": "使用建议",
+   "visible": true
+  }
+ ]
+}

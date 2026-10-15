@@ -1,0 +1,17 @@
+[package]
+name = "gewu"
+version = "1.0.0"
+edition = "2021"
+description = "格物 Gewu — 复杂表格理解工作台桌面壳"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+strip = true
+lto = true

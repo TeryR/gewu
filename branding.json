@@ -1,0 +1,12 @@
+{
+  "product": "格物",
+  "product_en": "Gewu",
+  "tagline": "复杂表格理解工作台",
+  "tagline_en": "Intelligence workbench for complex spreadsheets",
+  "owner": "识玥 shyue",
+  "owner_note": "属主指纹：可见徽记=owner；隐藏水印=sha256(产品|属主|邮箱|盐)",
+  "watermark_salt": "gewu-2026",
+  "email": "shyue97@163.com",
+  "close_to_tray": false,
+  "tray_note": "true=关窗口缩到托盘（引擎保持运行，重开秒进）；false=直接退出。改后重启桌面应用生效"
+}

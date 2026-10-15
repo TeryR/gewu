@@ -1,0 +1,394 @@
+{
+ "sanitized": false,
+ "sheets": [
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      2,
+      2,
+      2,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      4,
+      2,
+      6,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 3,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      8,
+      2,
+      14,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 7,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      16,
+      2,
+      18,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 3,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      20,
+      2,
+      22,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 3,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    }
+   ],
+   "n_merged": 0,
+   "name": "说明",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": true,
+     "bbox": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.9,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      4,
+      1,
+      16,
+      5
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       5,
+       16
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1
+      ],
+      "leaves": 5,
+      "rows": [
+       4
+      ],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 5,
+     "n_rows": 13,
+     "score": 0.95,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "汇率表",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": true,
+     "bbox": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.9,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      3,
+      1,
+      85,
+      6
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       4,
+       85
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1,
+       2,
+       3
+      ],
+      "leaves": 6,
+      "rows": [
+       3
+      ],
+      "summary": [
+       85
+      ],
+      "title": null
+     },
+     "n_cols": 6,
+     "n_rows": 83,
+     "score": 0.75,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "归一化引擎",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": true,
+     "bbox": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.9,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      3,
+      2,
+      16,
+      5
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       4,
+       16
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       2
+      ],
+      "leaves": 4,
+      "rows": [
+       3
+      ],
+      "summary": [
+       16
+      ],
+      "title": null
+     },
+     "n_cols": 4,
+     "n_rows": 14,
+     "score": 0.95,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "客户余额表",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": true,
+     "bbox": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.9,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      3,
+      1,
+      9,
+      3
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       9,
+       9
+      ],
+      "depth": 5,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1
+      ],
+      "leaves": 3,
+      "rows": [
+       4,
+       5,
+       6,
+       7,
+       8
+      ],
+      "summary": [],
+      "title": 3
+     },
+     "n_cols": 3,
+     "n_rows": 7,
+     "score": 0.95,
+     "summary_tail": false,
+     "type": "table"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      11,
+      1,
+      11,
+      2
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       11,
+       11
+      ],
+      "depth": 0,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1
+      ],
+      "leaves": 2,
+      "rows": [],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 2,
+     "n_rows": 1,
+     "score": 0.75,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "对账勾稽",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      4,
+      1,
+      86,
+      12
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       5,
+       86
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1,
+       2,
+       3,
+       4,
+       5
+      ],
+      "leaves": 12,
+      "rows": [
+       4
+      ],
+      "summary": [
+       86
+      ],
+      "title": null
+     },
+     "n_cols": 12,
+     "n_rows": 83,
+     "score": 0.85,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "原始流水",
+   "visible": true
+  }
+ ]
+}

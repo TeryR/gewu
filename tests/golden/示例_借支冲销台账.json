@@ -1,0 +1,49 @@
+{
+ "sanitized": false,
+ "sheets": [
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      1,
+      1,
+      22,
+      12
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       2,
+       22
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1,
+       2,
+       3
+      ],
+      "leaves": 12,
+      "rows": [
+       1
+      ],
+      "summary": [
+       22
+      ],
+      "title": null
+     },
+     "n_cols": 12,
+     "n_rows": 22,
+     "score": 0.75,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "台账",
+   "visible": true
+  }
+ ]
+}

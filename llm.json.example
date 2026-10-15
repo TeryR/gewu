@@ -1,0 +1,14 @@
+{
+  "_说明": "复制本文件为 llm.json 并填入你的 key（llm.json 在 .gitignore 中，不会被提交）",
+  "_常用配置": {
+    "硅基流动(一个key多家模型)": {"api_key": "sk-...", "model": "deepseek-ai/DeepSeek-V4-Flash", "base_url": "https://api.siliconflow.cn/v1"},
+    "GLM(智谱)":   {"api_key": "你的key", "model": "glm-4.6", "base_url": "https://open.bigmodel.cn/api/paas/v4"},
+    "DeepSeek":    {"api_key": "sk-...", "model": "deepseek-chat", "base_url": "https://api.deepseek.com/v1"},
+    "通义千问":     {"api_key": "sk-...", "model": "qwen-plus", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"},
+    "Ollama(本地免钥)": {"api_key": "", "model": "qwen3:8b", "base_url": "http://localhost:11434/v1"}
+  },
+  "protocol": "openai",
+  "api_key": "",
+  "model": "",
+  "base_url": ""
+}

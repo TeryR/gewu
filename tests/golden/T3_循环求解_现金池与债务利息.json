@@ -1,0 +1,326 @@
+{
+ "sanitized": false,
+ "sheets": [
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      2,
+      2,
+      2,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      4,
+      2,
+      6,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 3,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      8,
+      2,
+      11,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 4,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      13,
+      2,
+      15,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 3,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      17,
+      2,
+      18,
+      2
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 2,
+     "score": 0.55,
+     "summary_tail": false,
+     "type": "note"
+    }
+   ],
+   "n_merged": 0,
+   "name": "说明",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": false,
+     "bbox": [
+      3,
+      2,
+      6,
+      3
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       3,
+       6
+      ],
+      "depth": 0,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       2
+      ],
+      "leaves": 2,
+      "rows": [],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 2,
+     "n_rows": 4,
+     "score": 0.75,
+     "summary_tail": false,
+     "type": "table"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      8,
+      2,
+      12,
+      14
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       8,
+       12
+      ],
+      "depth": 0,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       2
+      ],
+      "leaves": 13,
+      "rows": [],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 13,
+     "n_rows": 5,
+     "score": 0.75,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "输入",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": true,
+     "bbox": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.9,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      3,
+      2,
+      8,
+      14
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       3,
+       8
+      ],
+      "depth": 0,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       2
+      ],
+      "leaves": 13,
+      "rows": [],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 13,
+     "n_rows": 6,
+     "score": 0.95,
+     "summary_tail": false,
+     "type": "table"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      10,
+      2,
+      15,
+      14
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       10,
+       15
+      ],
+      "depth": 0,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       2
+      ],
+      "leaves": 13,
+      "rows": [],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 13,
+     "n_rows": 6,
+     "score": 0.95,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "迭代求解",
+   "visible": true
+  },
+  {
+   "blocks": [
+    {
+     "annotation": true,
+     "bbox": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "header": null,
+     "n_cols": 1,
+     "n_rows": 1,
+     "score": 0.9,
+     "summary_tail": false,
+     "type": "note"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      3,
+      1,
+      15,
+      6
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       4,
+       15
+      ],
+      "depth": 1,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1
+      ],
+      "leaves": 6,
+      "rows": [
+       3
+      ],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 6,
+     "n_rows": 13,
+     "score": 0.95,
+     "summary_tail": false,
+     "type": "table"
+    },
+    {
+     "annotation": false,
+     "bbox": [
+      17,
+      1,
+      17,
+      2
+     ],
+     "header": {
+      "cross": false,
+      "data_zone": [
+       17,
+       17
+      ],
+      "depth": 0,
+      "dups": [],
+      "floating": [],
+      "keys": [
+       1
+      ],
+      "leaves": 2,
+      "rows": [],
+      "summary": [],
+      "title": null
+     },
+     "n_cols": 2,
+     "n_rows": 1,
+     "score": 0.75,
+     "summary_tail": false,
+     "type": "table"
+    }
+   ],
+   "n_merged": 0,
+   "name": "校验",
+   "visible": true
+  }
+ ]
+}
