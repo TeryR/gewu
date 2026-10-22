@@ -243,7 +243,18 @@ def main():
     global FULL_SRC
     try:
         html = urllib.request.urlopen(BASE).read().decode("utf-8")
+        # 前端已拆到 static/——把 JS 和 CSS 内容拼进 html 一起做静态检查
+        try:
+            js = urllib.request.urlopen(BASE + "/static/app.js").read().decode("utf-8")
+            css = urllib.request.urlopen(BASE + "/static/style.css").read().decode("utf-8")
+            html = html + "\n" + js + "\n" + css
+        except Exception:
+            pass  # 如果静态文件不可用（旧架构），html 已含全部内容
         FULL_SRC = open(os.path.join(ROOT, "serve.py"), encoding="utf-8").read()
+        # 也读 static/app.js 源码（检查函数定义在 JS 文件里）
+        js_path = os.path.join(ROOT, "static", "app.js")
+        if os.path.isfile(js_path):
+            FULL_SRC += open(js_path, encoding="utf-8").read()
         static_suite(html)
         api_suite()
         if not static_only:

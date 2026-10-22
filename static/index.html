@@ -1,0 +1,264 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8">
+<title>格物 Gewu · 复杂表格理解工作台</title>
+<meta name="generator" content="Gewu/1.0 (wm:pending)">
+<!-- gewu-owner-fingerprint: pending -->
+<script>
+// 启动时拉取品牌/属主信息填充（替代服务端模板变量）
+fetch('/api/branding').then(r=>r.json()).then(b=>{
+  document.title=b.product+' '+b.product_en+' · '+b.tagline;
+  document.getElementById('brandTag').textContent=b.tagline;
+  document.getElementById('ownerChip').textContent='◈ '+b.owner;
+  document.getElementById('ownerChip').title=b.owner_tip||b.owner;
+  document.getElementById('curTitle')&&(document.getElementById('curTitle').textContent=document.getElementById('curTitle').textContent); // 不覆盖
+  // meta 和注释水印
+  document.querySelector('meta[name=generator]').setAttribute('content','Gewu/1.0 (wm:'+b.watermark+')');
+}).catch(e=>console.warn('branding fetch failed',e));
+</script>
+<link rel="stylesheet" href="/static/style.css"></head><body>
+<header><b id="brandLogo" style="font-size:16px;letter-spacing:2px">格物 <span style="background:linear-gradient(90deg,#60a5fa,#93c5fd);-webkit-background-clip:text;background-clip:text;color:transparent">Gewu</span></b>
+  <span class="hint" id="brandTag" style="font-size:11px">复杂表格理解工作台</span>
+  <span id="ownerChip" onclick="showAbout()" style="cursor:pointer;font-size:11px;color:#64748b;border:1px solid #cbd5e1;border-radius:10px;padding:1px 8px">◈ </span>
+  <button id="langBtn" title="中文 / English" style="font-size:11px;padding:2px 8px;cursor:pointer"
+          onclick="toggleLang()">中/EN</button>
+  <span id="wbName"></span>
+  <select id="sheetSel"></select>
+  <span id="status">解析</span>
+  <label class="hint" style="display:flex;gap:2px;align-items:center">
+    <input type="checkbox" id="showMask" checked onchange="drawOverlays()"><span data-i18n="mask">蒙版</span></label>
+  <label class="hint" style="display:flex;gap:2px;align-items:center"><span data-i18n="opacity">浓度</span>
+    <input type="range" id="opSlider" min="0" max="50" value="14"
+           oninput="paintAll()" style="width:70px"></label>
+  <span id="pendingChip" style="display:none;color:#b45309;background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:2px 8px;font-size:12px"></span>
+  <span style="flex:1"></span>
+  <button id="freezeBtn" class="primary" onclick="doFreeze()" data-i18n="freeze">✔ 检查无误，冻结</button>
+  <button onclick="showHelp()" title="注意事项" data-i18n-t="help_t" style="font-weight:700">❓</button>
+  <button onclick="showAbout()" title="关于格物" data-i18n-t="about_t" style="font-weight:700">ⓘ</button>
+  <a id="exportBtn" href="/api/export" download style="display:none;text-decoration:none;color:#fff;
+     background:#d97706;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700"
+     data-i18n="export_btn" data-i18n-t="export_t"
+     title="下载改后的文件（副本模式的改动只有导出才是成品）">📥 导出改后文件</a>
+  <button onclick="showOpen()" title="打开文件" data-i18n-t="open_t" style="font-weight:700">📂</button>
+  <button onclick="showLLM()" title="LLM 设置" data-i18n-t="llm_t" style="font-weight:700">⚙️</button>
+</header>
+<div id="helpBox" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50" onclick="if(event.target===this)this.style.display='none'">
+ <div data-i18n-html="help_full" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;max-width:660px;width:92%;max-height:82vh;overflow:auto;padding:20px 26px;font-size:13.5px;line-height:1.75;box-shadow:0 10px 40px rgba(0,0,0,.25)">
+  <div style="display:flex;align-items:center;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin-bottom:4px">
+    <b style="font-size:16.5px">使用注意事项</b>
+    <button onclick="document.getElementById('helpBox').style.display='none'" style="margin-left:auto">关闭 ✕</button>
+  </div>
+
+  <div style="margin:12px 0 4px;font-weight:700;color:#1d4ed8">① 冻结是什么</div>
+  <div style="padding-left:10px">
+    冻结 = 你确认"机器切的框对了"，同时落地确认页上的手动修正，并打开<b>改数</b>的总闸门。<br>
+    <b>不冻结 = 只读模式</b>：问答 / 表格解读 / 勾稽核对随便用，改数一律被拦，文件绝对安全。
+  </div>
+
+  <div style="margin:14px 0 4px;font-weight:700;color:#1d4ed8">② 问答怎么问</div>
+  <div style="padding-left:10px">
+    "这个表格 / 当前表格" 指你现在看的 sheet；"整个文件 / 这些表什么关系" 问全簿。<br>
+    追问（如"那为什么这么算"）自动带最近 4 轮上下文；点 <b>🗑 新对话</b> 清空重来。
+  </div>
+
+  <div style="margin:14px 0 4px;font-weight:700;color:#1d4ed8">③ 改数怎么写</div>
+  <div style="padding-left:10px">
+    改数<b>不认"当前页面"</b>，按 sheet 关键词 + 行键 + 列名在全簿定位——指令里带上 sheet 名最稳<br>
+    （例："把<b>汇总表晨光韩国</b>的克重250加3"）。命中多行会被拦下让你说清。<br>
+    流程：语义解析 → 硬校验 → <b>diff 预览（旧值→新值）</b> → 你确认 → 写入（自动备份，可撤销）。上传副本模式下写入只进副本，成品需点页眉「📥 导出改后文件」下载。
+  </div>
+
+  <div style="margin:14px 0 4px;font-weight:700;color:#1d4ed8">④ 区块按钮的效果（冻结后生效）</div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin:4px 0">
+    <tr style="background:#f1f5f9"><th style="text-align:left;padding:4px 8px;border:1px solid #e2e8f0">按钮</th><th style="text-align:left;padding:4px 8px;border:1px solid #e2e8f0">效果</th></tr>
+    <tr><td style="padding:4px 8px;border:1px solid #e2e8f0">切为 🟨文本/批注</td><td style="padding:4px 8px;border:1px solid #e2e8f0">这块退出问答与改数（数据仍在文件里，只是不当表用）</td></tr>
+    <tr><td style="padding:4px 8px;border:1px solid #e2e8f0">切为 ⬜忽略</td><td style="padding:4px 8px;border:1px solid #e2e8f0">同上：退出问答 + 拒绝改数</td></tr>
+    <tr><td style="padding:4px 8px;border:1px solid #e2e8f0">切为 🟥混合待复核</td><td style="padding:4px 8px;border:1px solid #e2e8f0">隔离：禁改数、不进问答，直到定型成数据表或文本</td></tr>
+    <tr><td style="padding:4px 8px;border:1px solid #e2e8f0">🔒只读</td><td style="padding:4px 8px;border:1px solid #e2e8f0"><b>仅本应用内只读</b>：工具禁止改这块（可正常问答）。<b>文件本身不变</b>——Excel/WPS 里仍可编辑，文件属性也不变</td></tr>
+    <tr><td style="padding:4px 8px;border:1px solid #e2e8f0">🔓可写</td><td style="padding:4px 8px;border:1px solid #e2e8f0">解除上面的应用内只读</td></tr>
+  </table>
+  <div style="padding-left:10px;color:#475569;font-size:12.5px">
+    误触保护：修改点冻结才生效（顶部有"待提交 N 处"提示）；冻结前刷新页面 = 全部撤销；每块可 <b>↩ 撤销本块修改</b>；冻结后切错了，再切一次并重新冻结即可。<br>
+    注：引擎判为文本的黄块切"数据表"仅作视觉标记（无列结构，不参与问答）。
+  </div>
+
+  <div style="margin:14px 0 4px;font-weight:700;color:#1d4ed8">⑤ 文件被改动后</div>
+  <div style="padding-left:10px">
+    自己用工具改的数 → 重开无缝续用（冻结保持）。<br>
+    别人改了数值 → 重新拖入，绿条提示"数值已刷新"，冻结仍有效，不用重确认。<br>
+    结构变了（增删表/改表头） → 重新拖入，橙条列出变化清单，未变块的标记自动保留，复核后重新冻结。
+  </div>
+
+  <div style="margin:14px 0 4px;font-weight:700;color:#1d4ed8">⑥ 打开文件与副本</div>
+  <div style="padding-left:10px">
+    三种打开：<b>📂 路径</b>（Shift 右键复制文件地址粘贴——写回原文件，推荐）；
+    <b>上传副本</b>（分析体验——改动只写副本，页眉出现〔副本〕徽记）；
+    拖文件到桌面应用图标 / 拖入桌面窗口（=写回原文件）；网页页面里拖入（=上传副本）。<br>
+    <b>副本模式的成品 = 点页眉「📥 导出改后文件」下载的文件</b>——原上传的文件永远不含你的改动，别把它发给别人。
+  </div>
+  <div style="margin-top:14px;padding:8px 10px;background:#f8fafc;border-left:3px solid #94a3b8;color:#64748b;font-size:12.5px">
+    改数前会重过一遍全部校验；表头、汇总行、公式格、忽略区块永远不会被写入。所有人工标记（类型/只读/词典/行内备注挂接）只存在于本工具的镜像里，<b>永不修改你的文件</b>（改数指令除外）。
+  </div>
+ </div>
+</div>
+<div id="guide" data-i18n-html="guide">
+  <b>怎么用：</b><b>蓝框=表格</b>（问答和改数都发生在蓝框里，只需扫一眼框得对不对）；
+  <b>黄虚线=标题/备注</b>（不当表格处理，<u>不用管它</u>；标了「表内批注」的是表格中间夹的一行备注，正常现象）；
+  <b>红框=机器拿不准</b>（最好点开看一眼）。
+  没问题 → 点右上「检查无误，冻结」→ 去底部工作台。框不对 → 点色块改类型。
+  <button onclick="this.parentNode.remove()" style="margin-left:auto">知道了 ✕</button>
+</div>
+<div id="llmBox" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50" onclick="if(event.target===this)this.style.display='none'">
+ <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;max-width:560px;width:92%;max-height:86vh;overflow:auto;padding:22px 26px;font-size:13px;line-height:1.7;box-shadow:0 10px 40px rgba(0,0,0,.25)">
+  <div style="display:flex;align-items:center"><b style="font-size:15px" data-i18n="llm_h">⚙️ LLM 设置</b>
+    <button onclick="document.getElementById('llmBox').style.display='none'" style="margin-left:auto" data-i18n="llm_close">关闭 ✕</button></div>
+  <div style="margin:10px 0 4px"><b data-i18n="llm_preset_h">预设</b>
+    <select id="llmPreset" onchange="applyPreset()" style="width:100%;font-size:13px;padding:5px;margin-top:3px">
+      <option value="">— 选择预设自动填充 —</option>
+      <option value="siliconflow">SiliconFlow（硅基流动）</option>
+      <option value="openai">OpenAI</option>
+      <option value="deepseek">DeepSeek 官方</option>
+      <option value="glm">智谱 GLM</option>
+      <option value="anthropic">Anthropic Claude</option>
+      <option value="ollama">Ollama（本地）</option>
+      <option value="lmstudio">LM Studio（本地）</option>
+      <option value="custom">自定义（OpenAI 兼容）</option>
+    </select></div>
+  <div style="display:grid;grid-template-columns:110px 1fr;gap:6px 8px;margin-top:8px;align-items:center">
+    <b data-i18n="llm_proto">协议</b>
+    <select id="llmProto" style="font-size:13px;padding:5px">
+      <option value="openai">OpenAI 兼容</option>
+      <option value="anthropic">Anthropic 兼容</option>
+    </select>
+    <b data-i18n="llm_base">接口地址</b>
+    <input id="llmBase" placeholder="https://api.siliconflow.cn/v1" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
+    <b data-i18n="llm_model">模型名</b>
+    <input id="llmModel" placeholder="deepseek-ai/DeepSeek-V4-Flash" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
+    <b data-i18n="llm_key">API Key</b>
+    <input id="llmKey" type="password" placeholder="sk-...（本地模型可留空）" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
+  </div>
+  <div class="hint" style="font-size:11.5px;margin-top:6px" data-i18n="llm_privacy">密钥只保存在本机 llm.json，请求直连你所选的服务商；不配置则问答走内置纯代码引擎。</div>
+  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding:6px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px">
+    <input type="checkbox" id="trayToggle" onchange="saveTraySetting(this.checked)" style="cursor:pointer">
+    <span style="font-size:12.5px" data-i18n="tray_label">关闭窗口时缩到系统托盘（引擎保持运行，重开秒进；取消勾选=直接退出）</span>
+  </div>
+  <div class="hint" style="font-size:11px;margin-top:2px;margin-left:8px" data-i18n="tray_note">仅在桌面应用中生效；改后需重启桌面应用。网页版无此概念。</div>
+  <div style="display:flex;gap:6px;margin-top:10px;align-items:center">
+    <button class="primary" onclick="llmSave()" data-i18n="llm_save">保存</button>
+    <button onclick="llmTest()" data-i18n="llm_test">测试连接</button>
+    <span id="llmState" class="hint" style="font-size:12px"></span>
+  </div>
+ </div>
+</div>
+<div id="openBox" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50" onclick="if(event.target===this)this.style.display='none'">
+ <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;max-width:520px;width:90%;padding:22px 26px;font-size:13.5px;box-shadow:0 10px 40px rgba(0,0,0,.25)">
+  <div style="display:flex;align-items:center"><b style="font-size:15px" data-i18n="open_title">📂 打开文件</b>
+    <button onclick="document.getElementById('openBox').style.display='none'" style="margin-left:auto">关闭 ✕</button></div>
+  <div style="margin:12px 0 4px"><b data-i18n="open_path_h">① 文件路径</b><span class="hint">（写回原文件，推荐）</span>
+    <div class="hint" style="font-size:11.5px"><span data-i18n="open_path_hint">在资源管理器按住 Shift 右键文件 →「复制文件地址」粘贴到这。改数直接写回这个原文件。</span></div></div>
+  <div style="display:flex;gap:6px">
+    <input id="openPath" data-i18n-ph="open_ph" placeholder="C:\Users\...\表.xlsx" style="flex:1;padding:6px 10px;font-size:13px;border:1px solid #cbd5e1;border-radius:6px">
+    <button class="primary" onclick="doOpenPath()" data-i18n="open_do">打开</button>
+  </div>
+  <div id="openErr" style="color:#dc2626;font-size:12px;margin-top:4px"></div>
+  <div style="margin:14px 0 4px"><b data-i18n="open_copy_h">② 上传副本</b><span class="hint" data-i18n="open_copy_note">（分析体验用；改数只写副本——成品须点页眉「📥 导出改后文件」下载，别把原上传文件当成品发人）</span>
+    <div style="display:flex;gap:6px;margin-top:6px;align-items:center">
+      <input type="file" id="openFile" accept=".xlsx" style="flex:1;font-size:12.5px">
+      <button onclick="doOpenUpload()" data-i18n="open_up">上传并打开</button>
+    </div>
+    <div id="openUpState" class="hint" style="font-size:12px;margin-top:4px"></div></div>
+ </div>
+</div>
+<div id="aboutBox" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50" onclick="if(event.target===this)this.style.display='none'">
+ <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;max-width:520px;width:90%;padding:26px 30px;font-size:13.5px;line-height:1.8;box-shadow:0 10px 40px rgba(0,0,0,.25)" id="aboutBody"></div>
+</div>
+<div id="tabBar" style="display:none;gap:2px;padding:3px 8px;background:#e2e8f0;border-bottom:1px solid #cbd5e1;overflow-x:auto;white-space:nowrap"></div>
+<div id="changeBar" style="display:none;border-bottom:1px solid #fdba74;background:#fff7ed;padding:6px 14px;font-size:12.5px"></div>
+<div id="appBody">
+<div id="stage"><div id="gridWrap"><table id="grid"></table>
+  <div id="overlays"></div></div></div>
+<button id="panelExpand" style="display:none" title="展开面板">»</button>
+<div id="panelHandle" title="拖动调宽窄"></div>
+<div id="sidePanel">
+  <div id="ptabs">
+    <button class="ptab on" data-p="review" data-i18n="tab_review">📋 审阅</button>
+    <button class="ptab" data-p="chat" data-i18n="tab_chat">💬 问答</button>
+    <button class="ptab" data-p="write" data-i18n="tab_write">✏️ 改数</button>
+    <button class="ptab" data-p="history" data-i18n="tab_history">🕘 历史</button>
+    <button id="panelCollapse" title="收起面板（表格全宽）" data-i18n-t="collapse">«</button>
+  </div>
+  <div id="p-review" class="pane on">
+    <h3 style="margin:4px 0" data-i18n="review_h">区块审阅</h3><div class="hint" data-i18n="review_hint">点色块查看详情；不确定怎么操作就点右上 ❓——大多数文件直接冻结即可。</div>
+    <div id="detail" class="kv"></div>
+    <details id="glossaryBox" style="display:none;margin-top:10px;border-top:1px solid #e2e8f0;padding-top:6px">
+    <summary style="cursor:pointer;font-weight:600" data-i18n="glossary">📖 字段口径词典</summary>
+    <div id="glossaryList" class="hint">选中数据表区块后可给字段加口径注释</div>
+    </details>
+    <details id="rulesBox" style="display:none;margin-top:10px;border-top:1px solid #e2e8f0;padding-top:6px">
+    <summary style="cursor:pointer;font-weight:600" data-i18n="rules_h">📏 业务规则（值域）</summary>
+  <div class="hint" style="font-size:11.5px" data-i18n="rules_note">给数值列设上下限：block=越界拒写，warn=仅警告。规则由引擎硬执行，LLM 只知情。</div>
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;align-items:center">
+    <select id="ruleCol" style="font-size:12px;max-width:120px"></select>
+    <input id="ruleMin" placeholder="≥" style="width:44px;font-size:12px" data-i18n-ph="rules_min_ph">
+    <input id="ruleMax" placeholder="≤" style="width:44px;font-size:12px" data-i18n-ph="rules_max_ph">
+    <input id="rulePat" placeholder="正则(选填)" style="width:76px;font-size:12px" data-i18n-ph="rules_pat_ph">
+    <select id="ruleSev" style="font-size:12px"><option value="block">block</option><option value="warn">warn</option></select>
+    <button style="font-size:11px;padding:2px 8px" onclick="saveRule()" data-i18n="rules_save">保存</button>
+    <button style="font-size:11px;padding:2px 8px" onclick="delRule()" data-i18n="rules_del">删除</button>
+  </div>
+  <div style="display:flex;gap:4px;margin-top:4px;align-items:center">
+    <button style="font-size:11px;padding:2px 8px" onclick="runRulesCheck()">▶ <span data-i18n="rules_check">全表体检</span></button>
+    <span class="hint" style="font-size:11px" data-i18n="rules_check_note">按现有数据跑一遍规则，列出违规行</span>
+  </div>
+  <div id="rulesList" class="hint" style="font-size:11.5px">（选中数据表后可配置）</div>
+  <div id="rulesCheckOut" style="font-size:11.5px"></div>
+  </details>
+  </div>
+  <div id="p-chat" class="pane">
+    <div id="chatToolbar">
+      <button id="scopeBtn" onclick="toggleScopePop()" title="选择问答范围">
+        <span data-i18n="scope">范围</span>: <span id="scopeLabel">整个文件</span> ▾
+      </button>
+      <span style="flex:1"></span>
+      <span id="curTitle" class="hint" style="max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">（提问后自动建会话）</span>
+      <button class="toolBtn" title="历史会话" onclick="toggleSessPop()" data-i18n-t="sess_hist">🕘</button>
+      <button class="toolBtn" title="新对话" data-i18n-t="sess_new" onclick="newChat()">＋</button>
+    </div>
+    <div id="scopePop">
+      <div class="hint" style="font-size:11px;margin-bottom:4px">点击选择范围（可多选 sheet）</div>
+      <div id="scopeChips" style="display:flex;flex-wrap:wrap;gap:3px;max-height:200px;overflow:auto"></div>
+    </div>
+    <div id="sessPop"><div id="sessionList" class="hint">（尚无会话）</div></div>
+    <div id="chatLog"><div class="a hint" data-i18n="chat_hint">问数值（合计/最高的）→ 引擎计算；问理解（这表是做什么的/为什么这么算）→ LLM 解读；问评价（分析一下）→ 数据解读。追问自动带最近 4 轮上下文。</div></div>
+    <div class="askRow">
+      <input id="askBox" data-i18n-ph="ask_ph" placeholder="问：销售额合计 / 这表是做什么的 / 分析评价一下 （回车发送）" style="flex:1;min-width:0;padding:6px 10px;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();doAsk()}">
+      <button class="primary" onclick="doAsk()">问</button>
+    </div>
+  </div>
+  <div id="p-write" class="pane">
+    <div style="font-size:12px;color:#475569">✏️ <b data-i18n="write_h">改数</b><span data-i18n="write_note">：用日常中文描述要改什么，系统会定位目标位置并计算新值，确认后才写入原文件（自动备份，支持撤销）。写入范围不受对话所选 sheet 限制。</span></div>
+    <textarea id="writeBox" style="height:56px" data-i18n-ph='write_ph' placeholder='自然语言：把1月云澜居的成交套数改成7&#10;或手写计划 JSON：{"find":{"keys":{"列":"值"}},"set":{"column":"列","value":7}}' onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();doPlanWrite(/[\u4e00-\u9fff]/.test(this.value)&&!this.value.trim().startsWith('{')?'nl':'plan')}"></textarea>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      <button class="primary" onclick="doPlanWrite('nl')" data-i18n-t="btn_nl_t" data-i18n="btn_nl">💬 自然语言</button>
+      <button onclick="doPlanWrite('plan')" data-i18n="btn_plan">📋 计划 JSON</button>
+      <button onclick="doUndo()" style="margin-left:auto" data-i18n="btn_undo">↩ 撤销一批</button>
+    </div>
+    <div id="diffCard" class="hint" data-i18n="diff_hint">语义解析 → 硬校验（冻结/表头/汇总行等全不许碰）→ diff 预览 → 确认执行</div>
+    <div style="margin-top:8px"><b style="font-size:12.5px" data-i18n="write_log">最近写入</b>
+      <div id="writeLog" class="hint" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;flex:1;overflow:auto;font-size:12px">（切到本页签时加载）</div></div>
+  </div>
+  <div id="p-history" class="pane">
+    <div style="display:flex;align-items:center;gap:8px">
+      <b style="font-size:13px" data-i18n="hist_h">本文件的会话</b>
+      <button style="margin-left:auto;font:11px system-ui;padding:2px 8px" onclick="clearSessions();loadHistList()" data-i18n="hist_clear">清空全部</button>
+    </div>
+    <div id="histList" class="hint" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;max-height:180px;overflow:auto;font-size:12.5px">（切到本页签时加载）</div>
+    <div style="margin-top:10px"><b style="font-size:13px" data-i18n="hist_search_h">🔎 搜全部文件的历史</b>
+      <div style="display:flex;gap:4px;margin-top:4px">
+        <input id="histSearch" data-i18n-ph="hist_ph" placeholder="关键词（跨工作簿检索，只读参考）" style="flex:1;min-width:0;padding:5px 10px;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();doHistSearch()}">
+        <button onclick="doHistSearch()">搜</button>
+      </div>
+      <div id="histResults" class="hint" style="margin-top:6px;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;flex:1;overflow:auto;font-size:12.5px"></div>
+    </div>
+  </div>
+</div>
+</div>
+<script src="/static/app.js"></script></body></html>
