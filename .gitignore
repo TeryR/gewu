@@ -37,3 +37,11 @@ tests/golden/总部经营数据源2026.json
 tests/golden/后整理不后整理布 浸胶、贴合 物性对比20261001.json
 tests/golden/质量整改示例表.json
 tests/sandbox/
+
+# ── 挑战集（本机测试用，不上传） ──
+复杂Excel挑战集/
+
+# ── 临时/内部文件 ──
+ask_test.json
+state1.json
+docs/OPEN-SOURCE-PREP.md

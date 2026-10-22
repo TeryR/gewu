@@ -76,7 +76,7 @@ def main():
     os.makedirs(GOLDEN_DIR, exist_ok=True)
     root = os.path.dirname(os.path.abspath(__file__))
     # 挑战集（T1~T8，程序生成的虚构数据，开源安全）——开源后的主要回归源
-    challenge_dir = os.path.join(os.path.dirname(root), "复杂Excel挑战集")
+    challenge_dir = os.path.join(root, "复杂Excel挑战集")  # 项目内的挑战集（.gitignore 排除，克隆后无此目录）
     samples = []
     if os.path.isdir(challenge_dir):
         samples = sorted(glob.glob(os.path.join(challenge_dir, "*.xlsx")))

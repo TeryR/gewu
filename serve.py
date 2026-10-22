@@ -421,11 +421,15 @@ class Handler(BaseHTTPRequestHandler):
             self._json(chat_history_search(q, STATE["db"]))
         elif u.path == "/api/write_log":
             con = sqlite3.connect(STATE["db"])
-            rows = con.execute(
-                "SELECT ts, sheet, row_no, col_no, old_repr, new_repr, undone "
-                "FROM write_ops WHERE workbook_id=? ORDER BY id DESC LIMIT 30",
-                (STATE["wid"],)).fetchall()
-            con.close()
+            try:
+                rows = con.execute(
+                    "SELECT ts, sheet, row_no, col_no, old_repr, new_repr, undone "
+                    "FROM write_ops WHERE workbook_id=? ORDER BY id DESC LIMIT 30",
+                    (STATE["wid"],)).fetchall()
+            except sqlite3.OperationalError:
+                rows = []  # write_ops 表在首次写入时才创建——空表正常
+            finally:
+                con.close()
             self._json([{"ts": r[0], "sheet": r[1], "row": r[2], "col": r[3],
                          "old": r[4], "new": r[5], "undone": bool(r[6])} for r in rows])
 
@@ -1107,7 +1111,7 @@ pre.mdPre code{color:#e2e8f0}
     </div>
   </div>
   <div id="p-write" class="pane">
-    <div style="font-size:12px;color:#475569">✏️ <b data-i18n="write_h">改数（写回 Excel）</b>：说一句话定位到某行某列 → 机器算新值 → 看差异 → 确认才写入（自动备份，可撤销）。改数<b>不认对话范围</b>，按指令语义全簿定位。</div>
+    <div style="font-size:12px;color:#475569">✏️ <b data-i18n="write_h">改数</b><span data-i18n="write_note">：用日常中文描述要改什么，系统会定位目标位置并计算新值，确认后才写入原文件（自动备份，支持撤销）。写入范围不受对话所选 sheet 限制。</span></div>
     <textarea id="writeBox" style="height:56px" data-i18n-ph='write_ph' placeholder='自然语言：把1月云澜居的成交套数改成7&#10;或手写计划 JSON：{"find":{"keys":{"列":"值"}},"set":{"column":"列","value":7}}' onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();doPlanWrite(/[\u4e00-\u9fff]/.test(this.value)&&!this.value.trim().startsWith('{')?'nl':'plan')}"></textarea>
     <div style="display:flex;gap:4px;flex-wrap:wrap">
       <button class="primary" onclick="doPlanWrite('nl')" data-i18n-t="btn_nl_t" data-i18n="btn_nl">💬 自然语言</button>
@@ -1284,7 +1288,7 @@ window.addEventListener('drop',async e=>{
   bar.textContent=t('drop_pre')+f.name+t('drop_suf');
   const buf=await f.arrayBuffer();
   const r=await (await fetch('/api/upload?name='+encodeURIComponent(f.name),{method:'POST',body:buf})).json();
-  if(!r.ok){bar.textContent='上传失败：'+(r.reason||'');return}
+  if(!r.ok){bar.textContent=t('upload_fail')+' '+(r.reason||'');return}
   bar.remove();await reloadForNewFile();syncTabs();
 });
 
@@ -1370,7 +1374,7 @@ async function doOpenUpload(){
   const r=await (await fetch('/api/upload?name='+encodeURIComponent(f.name),{method:'POST',
     body:buf})).json();
   if(!r.ok){st.textContent=r.reason||'上传失败';return}
-  st.textContent='解析中…';
+  st.textContent=t('parsing');
   await reloadForNewFile();syncTabs();
 }
 function showAbout(){
@@ -1404,18 +1408,18 @@ function showDetail(b){
   const t=typeOf(b), d=document.getElementById('detail');
   const h=b.header||{};
   let rows=`
-   <b>类型</b><span>${LABELS[t]}</span>
-   <b>位置</b><span>r${b.bbox[0]}-r${b.bbox[2]} × c${b.bbox[1]}-c${b.bbox[3]}</span>
-   <b>代码置信</b><span>${b.score}</span>`;
-  if(h.header_rows)rows+=`<b>表头行</b><span>r${h.header_rows.join(',r')}</span>`;
-  if(h.title_text)rows+=`<b>标题</b><span>${esc(h.title_text)}</span>`;
-  if(h.floating_rows&&h.floating_rows.length)rows+=`<b>浮动草稿区</b><span>r${h.floating_rows.join(',r')}</span>`;
-  if(h.summary_rows&&h.summary_rows.length)rows+=`<b>⚠汇总行</b><span>r${h.summary_rows.join(',r')}（写保护）</span>`;
-  if(h.dup_header_names&&h.dup_header_names.length)rows+=`<b>⚠同名列</b><span>${h.dup_header_names.join('、')}</span>`;
-  if(h.cross_tab)rows+=`<b>交叉表</b><span>是</span>`;
-  if(h.col_tree)rows+=`<b>字段</b><span>${h.col_tree.filter(n=>n.path&&n.path.length).length} 个叶子列</span>`;
-  if(b.signals&&!b.annotation)rows+=`<b>信号</b><span>文本${b.signals.text_r} 数值${b.signals.num_r} 边框${b.signals.perimeter_border}</span>`;
-  if(b.annotation)rows+=`<b>批注</b><span>是（已从表格剥离）</span>`;
+   <b>${t('d_type')}</b><span>${LABELS[t]}</span>
+   <b>${t('d_pos')}</b><span>r${b.bbox[0]}-r${b.bbox[2]} × c${b.bbox[1]}-c${b.bbox[3]}</span>
+   <b>${t('d_score')}</b><span>${b.score}</span>`;
+  if(h.header_rows)rows+=`<b>${t('d_hdr')}</b><span>r${h.header_rows.join(',r')}</span>`;
+  if(h.title_text)rows+=`<b>${t('d_title')}</b><span>${esc(h.title_text)}</span>`;
+  if(h.floating_rows&&h.floating_rows.length)rows+=`<b>${t('d_float')}</b><span>r${h.floating_rows.join(',r')}</span>`;
+  if(h.summary_rows&&h.summary_rows.length)rows+=`<b>${t('d_summary')}</b><span>r${h.summary_rows.join(',r')}（写保护）</span>`;
+  if(h.dup_header_names&&h.dup_header_names.length)rows+=`<b>${t('d_dups')}</b><span>${h.dup_header_names.join('、')}</span>`;
+  if(h.cross_tab)rows+=`<b>${t('d_cross')}</b><span>是</span>`;
+  if(h.col_tree)rows+=`<b>${t('d_fields')}</b><span>${h.col_tree.filter(n=>n.path&&n.path.length).length} 个叶子列</span>`;
+  if(b.signals&&!b.annotation)rows+=`<b>${t('d_signal')}</b><span>文本${b.signals.text_r} 数值${b.signals.num_r} 边框${b.signals.perimeter_border}</span>`;
+  if(b.annotation)rows+=`<b>${t('d_anno')}</b><span>是（已从表格剥离）</span>`;
   if(b.attach){
     rows+=`<b>行内备注</b><span>挂到 表#${b.attach.table_block_id} 第${b.attach.row_no}行<br>
       <span class="hint">${esc((b.attach.text||'').slice(0,80))}</span><br>
@@ -1448,7 +1452,7 @@ async function renderRules(){
   const rs=await (await fetch('/api/rules?sheet='+encodeURIComponent(S.sheet))).json();
   document.getElementById('rulesList').innerHTML=rs.length?rs.map(r=>
     `· <b>${esc(r.col_path.split('/').pop())}</b> [${r.rmin??'-∞'},${r.rmax??'+∞'}] ${r.severity}`).join('<br>')
-    :'（本 sheet 尚无规则）';
+    :t('rules_none');
 }
 async function saveRule(){
   await fetch('/api/rules_save',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1641,7 +1645,7 @@ const I18N={
   sess_hist:"历史会话列表", sess_new:"新对话", cur_title_empty:"（提问后自动建会话）",
   chat_hint:"问数值（合计/最高的）→ 引擎计算；问理解（这表是做什么的/为什么这么算）→ LLM 解读；问评价（分析一下）→ 数据解读。追问自动带最近 4 轮上下文。",
   ask_ph:"问：销售额合计 / 这表是做什么的 / 分析评价一下 （回车发送）", ask_btn:"问",
-  write_h:"改数（写回 Excel）", write_note:"说一句话定位到某行某列 → 机器算新值 → 看差异 → 确认才写入（自动备份，可撤销）。改数不认对话范围，按指令语义全簿定位。",
+  write_h:"改数", write_note:"：用日常中文描述要改什么，系统会定位目标位置并计算新值，确认后才写入原文件（自动备份，支持撤销）。写入范围不受对话所选 sheet 限制。",
   write_ph:"自然语言：把1月云澜居的成交套数改成7\n或手写计划 JSON：{\"find\":{\"keys\":{\"列\":\"值\"}},\"set\":{\"column\":\"列\",\"value\":7}}",
   btn_nl:"💬 自然语言", btn_plan:"📋 计划 JSON", btn_undo:"↩ 撤销一批",
   diff_hint:"语义解析 → 硬校验（冻结/表头/汇总行等全不许碰）→ diff 预览 → 确认执行",
@@ -1662,6 +1666,15 @@ const I18N={
   rules_save:"保存", rules_del:"删除", rules_check:"全表体检",
   rules_check_note:"按现有数据跑一遍规则，列出违规行",
   rules_min_ph:"≥", rules_max_ph:"≤",
+  d_type:"类型", d_pos:"位置", d_score:"代码置信", d_hdr:"表头行",
+  d_title:"标题", d_float:"浮动草稿区", d_summary:"⚠汇总行", d_dups:"⚠同名列",
+  d_cross:"交叉表", d_fields:"字段", d_signal:"信号", d_anno:"批注",
+  user_q:"问：", v_pass:"✓ 硬校验全部通过", v_reject:"✗ 拒绝：",
+  v_confirm:"确认写入（COM，自动备份）", v_cancel:"取消", v_cancelled:"已取消",
+  hist_no_hit:"（没有命中）", load_on_switch:"（切到本页签时加载）",
+  rules_none:"（本 sheet 尚无规则）", rules_all_pass:"✓ 现有数据全部符合规则",
+  rules_violations:"处违规：", no_hits:"没有命中记录", ask_empty:"请输入问题",
+  parsing:"解析中…", upload_fail:"上传失败：", switch_fail:"切换失败:",
   btn_nl_t:"需在 ⚙️ 配置 LLM（本地模型亦可）", dep_unchanged:"⚠ 预测的联动格缓存值未变化——若预期应重算，请打开 Excel 确认", rules_pat_ph:"正则(选填)",
   llm_t:"LLM 设置", llm_h:"⚙️ LLM 设置", llm_close:"关闭 ✕", llm_preset_h:"预设",
   llm_proto:"协议", llm_base:"接口地址", llm_model:"模型名", llm_key:"API Key",
@@ -1689,7 +1702,7 @@ const I18N={
   sess_hist:"Session history", sess_new:"New chat", cur_title_empty:"(session starts on first question)",
   chat_hint:"Numbers (sum / top) → engine computes · Understanding (what is this table / why this formula) → LLM explains · Evaluation (analyze this) → data interpretation. Follow-ups carry the last 4 turns.",
   ask_ph:"Ask: total of sales / what is this table / analyze this  (Enter to send)", ask_btn:"Ask",
-  write_h:"Edit cells (writes back to Excel)", write_note:"Say which row & column → engine computes the new value → you review the diff → confirm to write (auto-backup, undoable). Edits ignore chat scope and locate semantically across the workbook.",
+  write_h:"Edit", write_note:"Say which row & column → engine computes the new value → you review the diff → confirm to write (auto-backup, undoable). Edits ignore chat scope and locate semantically across the workbook.",
   write_ph:"Natural language: set Sales of Project X in Jan to 7\nOr plan JSON: {\"find\":{\"keys\":{\"col\":\"value\"}},\"set\":{\"column\":\"col\",\"value\":7}}",
   btn_nl:"💬 Natural language", btn_plan:"📋 Plan JSON", btn_undo:"↩ Undo batch",
   diff_hint:"Semantic parse → hard validation (frozen/header/summary rows are protected) → diff preview → confirm to execute",
@@ -1710,6 +1723,15 @@ const I18N={
   rules_save:"Save", rules_del:"Delete", rules_check:"Check all data",
   rules_check_note:"Run rules against existing data and list violations",
   rules_min_ph:"min", rules_max_ph:"max",
+  d_type:"Type", d_pos:"Position", d_score:"Confidence", d_hdr:"Header rows",
+  d_title:"Title", d_float:"Floating zone", d_summary:"⚠Summary rows", d_dups:"⚠Dup columns",
+  d_cross:"Cross-tab", d_fields:"Fields", d_signal:"Signals", d_anno:"Annotation",
+  user_q:"Q:", v_pass:"✓ All validations passed", v_reject:"✗ Rejected: ",
+  v_confirm:"Confirm write (COM, auto-backup)", v_cancel:"Cancel", v_cancelled:"Cancelled",
+  hist_no_hit:"(no results)", load_on_switch:"(loads when tab opens)",
+  rules_none:"(no rules for this sheet)", rules_all_pass:"✓ All data passes rules",
+  rules_violations:" violations: ", no_hits:"No matching records", ask_empty:"Please enter a question",
+  parsing:"Parsing…", upload_fail:"Upload failed: ", switch_fail:"Switch failed: ",
   btn_nl_t:"Requires LLM in ⚙️ (local models also work)", dep_unchanged:"⚠ Predicted dependent cells' cached values unchanged — open Excel to verify if recalc was expected", rules_pat_ph:"regex (optional)",
   llm_t:"LLM settings", llm_h:"⚙️ LLM Settings", llm_close:"Close ✕", llm_preset_h:"Preset",
   llm_proto:"Protocol", llm_base:"Base URL", llm_model:"Model", llm_key:"API Key",
@@ -1867,7 +1889,7 @@ async function doHistSearch(){
   const r=await (await fetch('/api/search_history?q='+encodeURIComponent(q))).json();
   document.getElementById('histResults').innerHTML=r.length?r.map(h=>
     `<div style="padding:5px 2px;border-bottom:1px solid #f1f5f9"><b>[${esc(h.file)}]</b> ${esc(h.title)}<br>
-     <span class="hint">…${esc(h.snippet)}…</span></div>`).join(''):'（没有命中）';
+     <span class="hint">…${esc(h.snippet)}…</span></div>`).join(''):t('hist_no_hit');
 }
 async function loadWriteLog(){
   const r=await (await fetch('/api/write_log')).json();
@@ -1932,7 +1954,7 @@ async function doPlanWrite(mode){
    (v.warnings.length?`<div style="color:#b45309">⚠ ${v.warnings.map(esc).join('；')}</div>`:'')+
    (v.ok?`<div style="display:flex;gap:6px;margin-top:8px">
       <button class="primary" onclick="doExec()">确认写入（COM，自动备份）</button>
-      <button onclick="pendingOp=null;document.getElementById('diffCard').innerText='已取消'">取消</button></div>`:'');
+      <button onclick="pendingOp=null;document.getElementById('diffCard').innerText=t('v_cancelled')">取消</button></div>`:'');
   locateCell(r.op.sheet,r.op.row,r.op.col);
 }
 async function locateCell(sheet,row,col){
@@ -2014,7 +2036,7 @@ async function switchToTab(i){
   const tgt=TABS[i];ACTIVE_TAB=i;
   const r=await (await fetch('/api/open',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({path:tgt.path})})).json();
-  if(!r.ok){alert('切换失败: '+(r.reason||''));return}
+  if(!r.ok){alert(t('switch_fail')+' '+(r.reason||''));return}
   await reloadForNewFile();
   if(tgt.sheet){const sel=document.getElementById('sheetSel');
     const opt=[...sel.options].find(o=>o.textContent.includes(tgt.sheet));
