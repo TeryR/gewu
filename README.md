@@ -4,11 +4,9 @@
 
 Merged cells. Multi-level headers. Floating meta rows. Annotation lines. A second table hiding at row 23 with restarted serial numbers. Every tool you've tried reads that as garbage. Gewu segments it, builds a header tree, and lets an LLM answer questions over the actual structure — then, if you own the file, writes results back through real Excel COM.
 
-- **Language**: Python (engine) · Tauri (desktop shell)
-- **License**: AGPL-3.0 (commercial licensing available)
-- **Status**: preparing public release · challenge corpus included
-
-> 中文说明：[README.zh-CN.md](README.zh-CN.md)
+- **Language**: Python (engine) · Tauri (desktop shell) · 中文/English UI
+- **License**: MIT
+- **Status**: preparing public release
 
 ---
 
@@ -27,7 +25,8 @@ Gewu's engine solves it with **zero model calls** — pure structural rules:
 
 ## The Challenge Corpus
 
-`tests/golden/` ships with a structured challenge set built from real-world wild tables:
+Three fictional example files ship in `samples/` (safe to share, no real data).
+A local challenge set of 24 additional files (8 structural categories) can be used for extended testing — see `regression.py` for setup.
 
 | Series | What breaks naive parsers |
 |---|---|
@@ -36,7 +35,7 @@ Gewu's engine solves it with **zero model calls** — pure structural rules:
 | T3 循环求解 Circular Solve | tax and bonus pool interlocks |
 | T4 埋错狩猎 Buried Error Hunt | deliberately planted inconsistencies |
 | T5 口径炼狱 Caliber Purgatory | same metric, five definitions |
-| T6 野路子结构 Wild Structure | the kitchen-sink ledger (see our test walkthrough) |
+| T6 野路子结构 Wild Structure | the kitchen-sink ledger |
 | T7 碎片拼图 Fragment Assembly | tables split across scattered ranges |
 | T8 格式密码 Format Cipher | full-width digits, comma styles, text numbers |
 
@@ -53,6 +52,17 @@ python cli.py
 ```
 
 > Windows + local Excel required for write-back (COM). Reading and analysis work anywhere Python runs.
+
+## Key Features
+
+- **Safe write-back** — natural language edit instructions, 8 hard validations, diff preview, auto-backup, one-click undo. The LLM never does arithmetic; it only selects the operation mode and copies the operand.
+- **Bilingual AI output** — switch the UI between 中文/English; AI responses follow the selected language.
+- **File tabs** — open multiple workbooks in one window, 0.05s tab switching with fingerprint validation.
+- **Business rules** — set value ranges per column (e.g. `quantity 0–100`), violations blocked or flagged, one-click full-data health check.
+- **Field glossary** — teach the tool your company's terminology; definitions auto-injected into LLM context.
+- **LLM-agnostic** — works with any OpenAI-compatible API (SiliconFlow, DeepSeek, GLM, Qwen), Anthropic-compatible API, or local models (Ollama, no key required). Built-in settings panel with presets and connection testing.
+- **Full API** — 31 HTTP endpoints cover every UI feature. `GET /api/docs` returns a self-describing API spec, so external agents can automate the entire workflow.
+- **Desktop app** — Tauri 2 native window, drag-and-drop file opening, optional system tray, zero-orphan-process shutdown.
 
 ## Architecture
 
@@ -71,10 +81,13 @@ engine/
 
 ## Roadmap
 
+- [x] English UI（中/EN 一键切换，AI 回答跟随界面语言）
+- [x] Desktop app（Tauri 2，拖文件即开，可选托盘）
+- [x] API-first（31 个端点全功能暴露，`/api/docs` 自描述）
 - [ ] Public release with full challenge corpus
-- [ ] English UI
 - [ ] macOS / LibreOffice write-back path
 - [ ] Hosted version (no install)
+- [ ] Full i18n for engine messages (validation / error texts)
 
 ## License
 
