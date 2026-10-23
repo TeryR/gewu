@@ -263,13 +263,23 @@ def undo_last_batch(db, path, workbook_id=None) -> dict:
     from .mirror import apply_ops_to_mirror, _file_hash
     con = sqlite3.connect(db)
     con.row_factory = sqlite3.Row
-    wbrow = con.execute("SELECT id, file_hash FROM workbooks ORDER BY id DESC").fetchone()
+    # hash 护栏和批次选择都必须限定当前工作簿：多文件镜像库下
+    # 按 id 全局取最新会拿错文件/撤错别人的写入
+    if workbook_id is not None:
+        wbrow = con.execute("SELECT id, file_hash FROM workbooks WHERE id=?",
+                            (workbook_id,)).fetchone()
+    else:
+        wbrow = con.execute("SELECT id, file_hash FROM workbooks ORDER BY id DESC").fetchone()
     if wbrow and wbrow["file_hash"] and wbrow["file_hash"] != _file_hash(path):
         con.close()
         return {"ok": False, "reason": "文件在冻结后被外部修改（镜像已过期）：请重新拖入核对后再撤销"}
     con.row_factory = sqlite3.Row
-    row = con.execute("SELECT batch FROM write_ops WHERE undone=0 "
-                      "ORDER BY id DESC LIMIT 1").fetchone()
+    if workbook_id is not None:
+        row = con.execute("SELECT batch FROM write_ops WHERE undone=0 AND workbook_id=? "
+                          "ORDER BY id DESC LIMIT 1", (workbook_id,)).fetchone()
+    else:
+        row = con.execute("SELECT batch FROM write_ops WHERE undone=0 "
+                          "ORDER BY id DESC LIMIT 1").fetchone()
     if not row:
         con.close()
         return {"ok": False, "reason": "无可撤销的写入"}

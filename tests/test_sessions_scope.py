@@ -67,11 +67,11 @@ assert "命中 6 行" in ans and "最多显示" not in ans, ans[:120]
 print(f"  ✓ {ans.splitlines()[0]}")
 
 print("\n== 4) 会话 CRUD + 首问标题 + 持久化跨文件版本（接管同 wid） ==")
-sid = chat_session_create(wid, DB, title="布料工艺的疑问", scope=["台账B"])
+sid = chat_session_create(wid, DB, title="费用口径的疑问", scope=["台账B"])
 chat_session_append(sid, "user", "变量列怎么算的", DB)
-chat_session_append(sid, "assistant", "=(浸胶-原样)/原样", DB)
+chat_session_append(sid, "assistant", "=(处理-基准)/基准", DB)
 sess = chat_session_list(wid, DB)
-assert len(sess) == 1 and sess[0]["title"] == "布料工艺的疑问" and sess[0]["scope"] == ["台账B"]
+assert len(sess) == 1 and sess[0]["title"] == "费用口径的疑问" and sess[0]["scope"] == ["台账B"]
 msgs = chat_session_load(sid, DB)
 assert len(msgs) == 2 and msgs[0]["role"] == "user"
 # 文件结构变化 → 接管复用 wid → 会话仍在
@@ -82,19 +82,19 @@ wbk.save(PATH)
 wid2 = build_mirror(PATH, DB)
 assert wid2 == wid
 sess2 = chat_session_list(wid, DB)
-assert len(sess2) == 1 and sess2[0]["title"] == "布料工艺的疑问"
+assert len(sess2) == 1 and sess2[0]["title"] == "费用口径的疑问"
 print("  ✓ 结构变化接管后历史仍在")
 
 print("\n== 5) 跨文件历史搜索（文件B 的会话能被文件A 侧搜到） ==")
 sid_b = chat_session_create(wid_b, DB, title="乙文件的问题")
-chat_session_append(sid_b, "user", "独家关键词蓝鲸物性", DB)
-hits = chat_history_search("蓝鲸物性", DB)
+chat_session_append(sid_b, "user", "独家关键词蓝鲸口径", DB)
+hits = chat_history_search("蓝鲸口径", DB)
 assert hits and hits[0]["file"] == "scope_b.xlsx" and "独家关键词" in hits[0]["snippet"]
 print(f"  ✓ 命中 [{hits[0]['file']}] {hits[0]['title']}")
 
 print("\n== 6) 删除/清空 ==")
 chat_session_delete(sid_b, DB)
-assert not chat_history_search("蓝鲸物性", DB)
+assert not chat_history_search("蓝鲸口径", DB)
 chat_sessions_clear(wid, DB)
 assert not chat_session_list(wid, DB)
 print("  ✓ 单删 + 清空生效")

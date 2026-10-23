@@ -247,7 +247,7 @@ function showAbout(){
    <p style="margin:6px 0;color:#475569">格物是<b>本地优先</b>的复杂表格理解工作台：机器解析结构，人工一次确认，随后即可问答、解读与安全改数。除显式改数外<b>永不修改原文件</b>；语义镜像、口径词典与对话会话全部保存在你自己的电脑上。</p>
    <div style="margin:14px 0 4px;padding:10px 12px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:6px">
      <b>识玥 shyue</b><br>
-     <span style="color:#64748b">📧 </span><br>
+     <span style="color:#64748b">📧 ${EMAIL}</span><br>
      <span class="hint" style="font-size:11px">Gewu/1.0</span>
    </div>`:`
    <div style="display:flex;align-items:baseline;gap:10px;border-bottom:2px solid #e2e8f0;padding-bottom:10px;margin-bottom:12px">
@@ -258,7 +258,7 @@ function showAbout(){
    <p style="margin:6px 0;color:#475569">Gewu is a <b>local-first</b> workbench for understanding complex spreadsheets: the machine parses structure, you confirm once, then ask, interpret and safely edit. It <b>never touches your file</b> except explicit edit commands; the semantic mirror, glossary and chat sessions all stay on your own machine.</p>
    <div style="margin:14px 0 4px;padding:10px 12px;background:#f8fafc;border-left:3px solid #2563eb;border-radius:6px">
      <b>识玥 shyue</b><br>
-     <span style="color:#64748b">📧 </span><br>
+     <span style="color:#64748b">📧 ${EMAIL}</span><br>
      <span class="hint" style="font-size:11px">Gewu/1.0</span>
    </div>`;
   document.getElementById('aboutBox').style.display='';
@@ -505,7 +505,7 @@ const I18N={
   chat_hint:"问数值（合计/最高的）→ 引擎计算；问理解（这表是做什么的/为什么这么算）→ LLM 解读；问评价（分析一下）→ 数据解读。追问自动带最近 4 轮上下文。",
   ask_ph:"问：销售额合计 / 这表是做什么的 / 分析评价一下 （回车发送）", ask_btn:"问",
   write_h:"改数", write_note:"：用日常中文描述要改什么，系统会定位目标位置并计算新值，确认后才写入原文件（自动备份，支持撤销）。写入范围不受对话所选 sheet 限制。",
-  write_ph:"自然语言：把1月云澜居的成交套数改成7\n或手写计划 JSON：{\"find\":{\"keys\":{\"列\":\"值\"}},\"set\":{\"column\":\"列\",\"value\":7}}",
+  write_ph:"自然语言：把销售部1月差旅费的金额改成20000\n或手写计划 JSON：{\"find\":{\"keys\":{\"列\":\"值\"}},\"set\":{\"column\":\"列\",\"value\":7}}",
   btn_nl:"💬 自然语言", btn_plan:"📋 计划 JSON", btn_undo:"↩ 撤销一批",
   diff_hint:"语义解析 → 硬校验（冻结/表头/汇总行等全不许碰）→ diff 预览 → 确认执行",
   write_log:"最近写入", write_log_empty:"（切到本页签时加载）", write_log_none:"（本文件还没有写入记录）",

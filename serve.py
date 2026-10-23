@@ -223,7 +223,7 @@ API_DOCS = {
         ],
         "safe_write": [
             "POST /api/freeze {edits: []}",
-            "POST /api/plan_write {mode: 'nl', text: '把1月云澜居的成交套数改成7'}",
+            "POST /api/plan_write {mode: 'nl', text: '把销售部1月差旅费的金额改成20000'}",
             "POST /api/execute_write {op: <上一步返回的op>}",
             "POST /api/undo {}  ← 如果需要撤销"
         ],
@@ -381,6 +381,15 @@ class Handler(BaseHTTPRequestHandler):
                         ".png": "image/png", ".ico": "image/x-icon"}.get(ext, "application/octet-stream")
                 with open(fpath, "rb") as f:
                     body = f.read()
+                if ext in (".html", ".js", ".css"):
+                    # 属主水印/邮箱占位符在静态服务时注入（与 X-Gewu-Owner 响应头同源）
+                    body = (body.decode("utf-8")
+                            .replace("wm:pending", f'wm:{BRANDING["watermark"]}')
+                            .replace("gewu-owner-fingerprint: pending",
+                                     f'gewu-owner-fingerprint: {BRANDING["watermark"]}')
+                            .replace('const EMAIL="";',
+                                     f'const EMAIL={json.dumps(BRANDING.get("email", ""))};')
+                            ).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", mime)
                 self.send_header("Content-Length", str(len(body)))

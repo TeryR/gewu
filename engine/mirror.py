@@ -206,7 +206,7 @@ def _attach_row_notes(cells, seg_blocks, off_keys, sheet_name, rules):
                         for c in range(c1, c2 + 1) if (r1, c) in content)
         if not text or text.startswith("="):   # 空文本/公式串（降级模式的公式文本）不是人写备注
             continue
-        if len(text) < min_len:                # 短标签（如"事业部A"节标签）当不了行备注
+        if len(text) < min_len:                # 短标签（如"销售部"节标签）当不了行备注
             continue
         if any(mk in text for mk in markers):   # 表级说明（本表数据截至…）→ 不挂到某一行
             continue

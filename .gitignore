@@ -8,8 +8,6 @@ mirror.db
 mirror.db-shm
 mirror.db-wal
 reports/
-tests/golden/日报-事业部A.json
-tests/golden/总部经营数据源2026.json
 uploads/
 
 # 构建产物
@@ -27,16 +25,17 @@ dump.py
 .cache/
 
 # 真实客户数据（红级，本地保留、永不入库）
-samples/示例A部项目日报0829.xlsx
-samples/日报-事业部A.xlsx
-samples/总部经营数据源2026.xlsx
-samples/质量整改示例表.xlsx
-samples/物料清单示例.xlsx
-tests/golden/示例A部项目日报0829.json
-tests/golden/日报-事业部A.json
-tests/golden/总部经营数据源2026.json
-tests/golden/后整理不后整理布 浸胶、贴合 物性对比20261001.json
-tests/golden/质量整改示例表.json
+# samples/ 与 tests/golden/ 用白名单：只放行虚构示例与挑战集快照，
+# 以后放进来的任何真实文件默认被忽略，不会被 git add -A 带上去
+samples/*
+!samples/示例_集团费用归并.xlsx
+!samples/示例_经营毛利模型.xlsx
+!samples/示例_借支冲销台账.xlsx
+tests/golden/*
+!tests/golden/00_总览索引.json
+!tests/golden/示例_*.json
+!tests/golden/T*.json
+tests/local_samples.txt
 tests/sandbox/
 
 # ── 挑战集（本机测试用，不上传） ──

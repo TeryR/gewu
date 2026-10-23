@@ -62,7 +62,7 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
   <div style="margin:14px 0 4px;font-weight:700;color:#1d4ed8">③ 改数怎么写</div>
   <div style="padding-left:10px">
     改数<b>不认"当前页面"</b>，按 sheet 关键词 + 行键 + 列名在全簿定位——指令里带上 sheet 名最稳<br>
-    （例："把<b>汇总表晨光韩国</b>的克重250加3"）。命中多行会被拦下让你说清。<br>
+    （例："把<b>销售部</b>1月的差旅费金额加3000"）。命中多行会被拦下让你说清。<br>
     流程：语义解析 → 硬校验 → <b>diff 预览（旧值→新值）</b> → 你确认 → 写入（自动备份，可撤销）。上传副本模式下写入只进副本，成品需点页眉「📥 导出改后文件」下载。
   </div>
 
@@ -235,7 +235,7 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
   </div>
   <div id="p-write" class="pane">
     <div style="font-size:12px;color:#475569">✏️ <b data-i18n="write_h">改数</b><span data-i18n="write_note">：用日常中文描述要改什么，系统会定位目标位置并计算新值，确认后才写入原文件（自动备份，支持撤销）。写入范围不受对话所选 sheet 限制。</span></div>
-    <textarea id="writeBox" style="height:56px" data-i18n-ph='write_ph' placeholder='自然语言：把1月云澜居的成交套数改成7&#10;或手写计划 JSON：{"find":{"keys":{"列":"值"}},"set":{"column":"列","value":7}}' onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();doPlanWrite(/[\u4e00-\u9fff]/.test(this.value)&&!this.value.trim().startsWith('{')?'nl':'plan')}"></textarea>
+    <textarea id="writeBox" style="height:56px" data-i18n-ph='write_ph' placeholder='自然语言：把销售部1月差旅费的金额改成20000&#10;或手写计划 JSON：{"find":{"keys":{"列":"值"}},"set":{"column":"列","value":7}}' onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();doPlanWrite(/[\u4e00-\u9fff]/.test(this.value)&&!this.value.trim().startsWith('{')?'nl':'plan')}"></textarea>
     <div style="display:flex;gap:4px;flex-wrap:wrap">
       <button class="primary" onclick="doPlanWrite('nl')" data-i18n-t="btn_nl_t" data-i18n="btn_nl">💬 自然语言</button>
       <button onclick="doPlanWrite('plan')" data-i18n="btn_plan">📋 计划 JSON</button>

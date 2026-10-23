@@ -15,6 +15,7 @@ from engine.writer import validate_plan
 
 SB = os.path.join("tests", "sandbox")
 os.makedirs(SB, exist_ok=True)
+SRC = os.path.join("samples", "示例_集团费用归并.xlsx")
 
 
 def fake_chat(responses):
@@ -28,23 +29,24 @@ print("== 链路1：问答意图 → 聚合 ==")
 DB1 = os.path.join(SB, "llm_read.db")
 if os.path.exists(DB1):
     os.remove(DB1)
-build_mirror("samples/总部经营数据源2026.xlsx", DB1)
+build_mirror(SRC, DB1)
 m = Mirror(DB1)
-llm.chat = fake_chat(['{"op":"max","column":"年创收","block_hint":"代理"}'])
-plan = llm.query_intent("哪个项目年创收最高", m._llm_context())
-ans = m.answer("哪个项目年创收最高", llm=lambda q, context: plan)
+llm.chat = fake_chat(['{"op":"max","column":"金额（元）","block_hint":"销售部"}'])
+plan = llm.query_intent("销售部金额最大多少", m._llm_context())
+ans = m.answer("销售部金额最大多少", llm=lambda q, context: plan)
 print(" ", ans.splitlines()[0])
 
-llm.chat = fake_chat(['{"op":"sum","column":"1月","block_hint":"指标分解",'
-                      '"filters":{"部门":"示例A部"}}'])
-plan = llm.query_intent("示例A部1月合计多少", m._llm_context())
+llm.chat = fake_chat(['{"op":"sum","column":"金额（元）","block_hint":"销售部",'
+                      '"filters":{"费用项目":"差旅费"}}'])
+plan = llm.query_intent("销售部差旅费合计多少", m._llm_context())
 b = m._pick_block(plan.get("block_hint"))
 r = m.aggregate(b, plan["column"], plan.get("op", "sum"), filters=plan.get("filters"))
-print(f"  示例A部 1 月 = {r['value']:.2f}（期望 85.34）")
+print(f"  销售部差旅费 = {r['value']:.2f}（期望 375166.45，12 个月）")
+assert abs(r["value"] - 375166.45) < 0.01, r["value"]
 
 print("\n== 链路2：写指令 → 语义解析 → 坐标 → 硬校验 ==")
 SBX = os.path.join(SB, "llm_write.xlsx")
-shutil.copy2("samples/总部经营数据源2026.xlsx", SBX)
+shutil.copy2(SRC, SBX)
 DBX = os.path.join(SB, "llm_write.db")
 if os.path.exists(DBX):
     os.remove(DBX)
@@ -52,26 +54,30 @@ wid = build_mirror(SBX, DBX)
 freeze(wid, DBX)
 mx = Mirror(DBX)
 
-llm.chat = fake_chat(['{"find":{"sheet":"示例B部经营数据明细表","keys":{"项目":"云澜居","月份":"1月"}},'
-                      '"set":{"column":"成交套数","value":7}}'])
-plan = llm.write_intent("把1月云澜居的成交套数改成7", llm.mirror_context(mx))
+llm.chat = fake_chat(['{"find":{"sheet":"销售部","keys":{"月份":"1","费用项目":"差旅费"}},'
+                      '"set":{"column":"金额（元）","value":20000}}'])
+plan = llm.write_intent("把销售部1月差旅费的金额改成20000", llm.mirror_context(mx))
 res = llm.resolve_write_plan(plan, mx)
 print(f"  解析: ok={res['ok']} via={res.get('via')} 定位={res['op']['sheet']}!r{res['op']['row']}c{res['op']['col']}")
+assert res["ok"] and res["op"]["sheet"] == "销售部" and res["op"]["row"] == 3, res
 v = validate_plan([res["op"]], SBX, DBX, wid)
 print(f"  硬校验: {'✓放行' if v['ok'] else '✗' + str(v['rejections'])}")
+assert v["ok"], v["rejections"]
 
-print("\n== 链路2b：歧义指令（仅项目名，月度台账命中多行）必须被拦截 ==")
+print("\n== 链路2b：歧义指令（仅费用项目，跨 3 个月命中多行）必须被拦截 ==")
 res2 = llm.resolve_write_plan(
-    {"find": {"sheet": "示例B部", "keys": {"项目": "云澜居"}},
-     "set": {"column": "成交套数", "value": 7}}, mx)
+    {"find": {"sheet": "销售部", "keys": {"费用项目": "差旅费"}},
+     "set": {"column": "金额（元）", "value": 7}}, mx)
 print(f"  歧义检测: ok={res2['ok']} ambiguous={res2.get('ambiguous')} "
       f"提示={str(res2.get('clarify'))[:50]}")
+assert not res2["ok"] and res2.get("ambiguous"), res2
 
 print("\n== 链路2c：need_clarify 透传 ==")
 llm.chat = fake_chat(['{"need_clarify":"要改哪个月份的？"}'])
-plan = llm.write_intent("改套数", llm.mirror_context(mx))
+plan = llm.write_intent("改金额", llm.mirror_context(mx))
 res3 = llm.resolve_write_plan(plan, mx)
 print(f"  透传: ok={res3['ok']} clarify={res3.get('clarify')}")
+assert not res3["ok"] and res3.get("clarify")
 
 print("\n== 未配置 key 的诚实失败 ==")
 llm.chat = llm.__dict__.get("_orig_chat", llm.chat)

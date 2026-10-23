@@ -25,7 +25,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = os.path.dirname(os.path.abspath(__file__))
 PORT = 8799
 BASE = f"http://127.0.0.1:{PORT}"
-SAMPLE = os.path.join(ROOT, "samples", "总部经营数据源2026.xlsx")
+SAMPLE = os.path.join(ROOT, "samples", "示例_集团费用归并.xlsx")
 SAMPLE2 = os.path.join(ROOT, "tests", "sandbox", "ui_second.xlsx")
 
 RESULTS = []
@@ -157,7 +157,7 @@ def api_suite():
     check("/api/boot 返回 ready", boot.get("ready") is True)
 
     print("\n── B3. 核心数据端点连通 ──")
-    for ep in ["/api/sheets", "/api/state?sheet=%E6%8C%87%E6%A0%87%E5%88%86%E8%A7%A3", "/api/glossary",
+    for ep in ["/api/sheets", "/api/state?sheet=%E9%94%80%E5%94%AE%E9%83%A8", "/api/glossary",
                "/api/rules", "/api/sessions", "/api/write_log",
                "/api/app_settings", "/api/llm_config"]:
         try:
@@ -174,30 +174,30 @@ def api_suite():
     # 切回
     fetch("/api/open", {"path": SAMPLE}, "POST")
     sheets1 = fetch("/api/sheets")
-    check("切回第一文件", any(s["name"] == "指标分解" for s in sheets1))
+    check("切回第一文件", any(s["name"] == "销售部" for s in sheets1))
 
     print("\n── B5. 会话与问答（规则引擎路径，不依赖 LLM） ──")
-    r = fetch("/api/ask", {"question": "数量列合计", "sheet": "指标分解"}, "POST")
+    r = fetch("/api/ask", {"question": "金额列合计", "sheet": "销售部"}, "POST")
     check("/api/ask 规则引擎应答", "answer" in r, str(r)[:80])
     r = fetch("/api/ask", {"question": "这个表格是做什么的",
-                           "sheet": "指标分解", "scope": None}, "POST")
+                           "sheet": "销售部", "scope": None}, "POST")
     check("describe 类问题有应答", "answer" in r and len(str(r["answer"])) > 10)
 
     print("\n── B6. 业务规则端到端（保存→体检→删除） ──")
-    fetch("/api/rules_save", {"sheet": "指标分解", "column": "套数",
+    fetch("/api/rules_save", {"sheet": "销售部", "column": "金额（元）",
                               "min": 0, "max": 100000, "severity": "block"}, "POST")
-    rules = fetch("/api/rules?sheet=%E6%8C%87%E6%A0%87%E5%88%86%E8%A7%A3")
-    check("规则保存", any(x["col_path"] == "套数" for x in rules))
+    rules = fetch("/api/rules?sheet=%E9%94%80%E5%94%AE%E9%83%A8")
+    check("规则保存", any(x["col_path"] == "金额（元）" for x in rules))
     viol = fetch("/api/rules_check")
     check("全表体检返回列表", isinstance(viol, list))
-    fetch("/api/rules_delete", {"sheet": "指标分解", "column": "套数"}, "POST")
-    rules = fetch("/api/rules?sheet=%E6%8C%87%E6%A0%87%E5%88%86%E8%A7%A3")
-    check("规则删除", not any(x["col_path"] == "套数" for x in rules))
+    fetch("/api/rules_delete", {"sheet": "销售部", "column": "金额（元）"}, "POST")
+    rules = fetch("/api/rules?sheet=%E9%94%80%E5%94%AE%E9%83%A8")
+    check("规则删除", not any(x["col_path"] == "金额（元）" for x in rules))
 
     print("\n── B7. 会话生命周期 ──")
     sessions_before = fetch("/api/sessions")
     r = fetch("/api/ask", {"question": "测试会话创建的问题",
-                           "sheet": "指标分解"}, "POST")
+                           "sheet": "销售部"}, "POST")
     sid = r.get("session_id")
     check("首问自动建会话", bool(sid))
     sessions_after = fetch("/api/sessions")

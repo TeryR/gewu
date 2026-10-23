@@ -11,7 +11,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 from engine.mirror import build_mirror
 
 DB = os.path.join("tests", "sandbox", "rebuild.db")
-SRC = os.path.join("samples", "总部经营数据源2026.xlsx")
+SRC = os.path.join("samples", "示例_集团费用归并.xlsx")
 if os.path.exists(DB):
     os.remove(DB)
 

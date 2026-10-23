@@ -85,7 +85,7 @@ def _carve_annotations(cells, content, rules):
     col_count = {}
     for r, c in content:
         col_count[c] = col_count.get(c, 0) + 1
-    # 表头词汇行：同一行里重复出现的字符串标签占比高（如"原样/浸胶/复合/评价"×N 列
+    # 表头词汇行：同一行里重复出现的字符串标签占比高（如"基准/处理/复合/评价"×N 列
     # 的多级表头叶子行，其下无数据的列整列只有这一个格）。真批注（"更新日期：…"、
     # "小结"）在同一家不会复现，占不上这个比例。
     rep_frac_min = ra.get("header_rep_frac", 0.5)

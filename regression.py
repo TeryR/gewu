@@ -82,10 +82,15 @@ def main():
         samples = sorted(glob.glob(os.path.join(challenge_dir, "*.xlsx")))
     # 真实样本（含真实业务数据，.gitignore 排除——本机跑有就加）
     samples += sorted(glob.glob(os.path.join(root, "samples", "*.xlsx")))
-    # 真实布料文件（多级表头/竖合并/转置矩阵的代表，本机路径）
-    fabric = r"C:\Users\Administrator\Desktop\后整理不后整理布 浸胶、贴合 物性对比20261001.xlsx"
-    if os.path.isfile(fabric):
-        samples.append(fabric)
+    # 本机额外样本（如桌面文件）：路径写在 tests/local_samples.txt（.gitignore 排除），
+    # 一行一个，# 开头为注释；克隆后无此文件，公开回归不受影响
+    extras = os.path.join(root, "tests", "local_samples.txt")
+    if os.path.isfile(extras):
+        with open(extras, encoding="utf-8") as f:
+            for ln in f:
+                p = ln.strip()
+                if p and not p.startswith("#") and os.path.isfile(p):
+                    samples.append(p)
     assert samples, "无样本文件（挑战集目录或 samples/ 至少需要一处有 .xlsx）"
     failed = 0
     for path in samples:

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""多级表头叶子行不得被孤点剥离误伤（布料物性汇总表模式）。
+"""多级表头叶子行不得被孤点剥离误伤（多级表头对比汇总表模式）。
 
-背景：四级表头（r2 组 → r3 子组 → r4 叶子标签），叶子列里"浸胶记录/复合/评价"
+背景：四级表头（r2 组 → r3 子组 → r4 叶子标签），叶子列里"处理记录/复合/评价"
 等列整列无数据 → r4 的表头格是该列唯一内容格 → 旧孤点规则把它们剥成黄色批注块，
 几何上嵌在蓝表里（用户看到"蓝框套黄框"）。
 判别信号：真批注（小结/更新日期）同一家不会复现；表头词汇在同一行横向重复
@@ -24,9 +24,9 @@ SB = os.path.join("tests", "sandbox")
 os.makedirs(SB, exist_ok=True)
 PATH = os.path.join(SB, "header_carve.xlsx")
 
-HEADER_LEAF = (["原样", "浸胶", "浸胶记录", "复合", "评价", "原样", "浸胶",
-                "平浸变量", "浸胶记录", "复合", "平贴变量", "评价", "原样", "浸胶",
-                "绒浸变量", "评价", "浸胶记录", "复合"])
+HEADER_LEAF = (["基准", "处理", "处理记录", "复合", "评价", "基准", "处理",
+                "平处变量", "处理记录", "复合", "平复变量", "评价", "基准", "处理",
+                "绒处变量", "评价", "处理记录", "复合"])
 
 
 def _build():
@@ -34,11 +34,11 @@ def _build():
     ws = wb.active
     ws.title = "汇总"
     ws.merge_cells("A1:R1")
-    ws["A1"] = "后整理布物性对比"
-    ws.merge_cells("A2:E2"); ws["A2"] = "韩国产品"
-    ws.merge_cells("F2:J2"); ws["F2"] = "晨光新设计"
+    ws["A1"] = "面料工艺性能对比"
+    ws.merge_cells("A2:E2"); ws["A2"] = "A系列"
+    ws.merge_cells("F2:J2"); ws["F2"] = "B系列"
     ws.merge_cells("K2:R2"); ws["K2"] = "分析"
-    ws["A3"] = "序号"; ws["B3"] = "项目"; ws["C3"] = "基布样"; ws["D3"] = "浸胶液及规格"
+    ws["A3"] = "序号"; ws["B3"] = "项目"; ws["C3"] = "基布样"; ws["D3"] = "处理液及规格"
     for i, lab in enumerate(HEADER_LEAF):
         ws.cell(row=4, column=5 + i, value=lab)
     data = [("厚度(mm)", 0.74, None, None, None, None, None, 0.86, None, None,
@@ -55,12 +55,12 @@ def _build():
         for i, v in enumerate(row[1:]):
             if v is not None:
                 ws.cell(row=5 + j, column=5 + i, value=v)
-    # 个别"浸胶记录/复合"叶子列带数据 → 表头树应能命名它们（c7=浸胶记录 c14=复合）
-    ws.cell(row=5, column=7, value="浸1#")
-    ws.cell(row=5, column=14, value="膜1#")
+    # 个别"处理记录/复合"叶子列带数据 → 表头树应能命名它们（c7=处理记录 c14=复合）
+    ws.cell(row=5, column=7, value="处1#")
+    ws.cell(row=5, column=14, value="复1#")
     # 中部真批注行：小结 + 长备注，同一家只出现一次 → 必须被剥离
     ws.cell(row=9, column=3, value="小结")
-    ws.cell(row=9, column=18, value="在此原料和织法条件下;后整理后强力损失明显")
+    ws.cell(row=9, column=18, value="该批次原料吸湿偏高;处理后强力损失明显")
     wb.save(PATH)
 
 
@@ -88,7 +88,7 @@ ok_note = any(bb[0] == 9 for bb, _ in notes)
 print(f"  2) 小结行r9剥离: {'✓' if ok_note else '✗ 未剥离'}")
 assert ok_note, "真批注（小结行）未被剥离"
 
-# 3) 带数据的叶子列（浸胶记录/复合）保留在表内 → 表头树能命名它们
+# 3) 带数据的叶子列（处理记录/复合）保留在表内 → 表头树能命名它们
 from engine.headers import build_header_tree
 rules = get_rules()
 cache, _ = sanitize_xlsx(PATH)
@@ -97,7 +97,7 @@ seg = segment_sheet(sh, rules=rules)
 tab = next(b for b in seg["blocks"] if b["type"] == "table")
 h = build_header_tree(sh, tab, rules)
 joined = "".join(str(n.get("path")) + str(n.get("label") or "") for n in h.get("col_tree") or [])
-kept = all(w in joined for w in ("浸胶记录", "复合"))
+kept = all(w in joined for w in ("处理记录", "复合"))
 print(f"  3) 表头树含被保护的叶子词: {'✓' if kept else '✗ ' + joined[:160]}")
 assert kept
 

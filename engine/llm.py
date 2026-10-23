@@ -164,9 +164,9 @@ QUERY_SYSTEM = """你是表格查询意图解析器。把用户问题转为查�
 {"op":"sum|avg|count|max|min|lookup|ties|describe|analyze","column":"列名（必须取自上下文真实列）",
  "block_hint":"sheet名或表名关键词","filters":{"列名":"值"}}
 选列与选表规则：
-- 列名在上下文里重复出现时（如多组同名"原样"），column 必须用完整路径（含组头，如"样品A/原样"），
+- 列名在上下文里重复出现时（如多个分组下同名“金额”），column 必须用完整路径（含组头，如“销售部/金额”），
   必要时配合 block_hint/filters 锁定是哪一组。
-- sheet 名相近时（如多个"汇总表"变体），block_hint 要带上问题里的区分词（规格/型号/对象，如"汇总表晨光韩国 6920-100"）。
+- sheet 名相近时（如多个“汇总表”变体），block_hint 要带上问题里的区分词（规格/型号/对象，如“汇总表规格TR-4020”）。
 - describe 用于理解型问题（这个表是做什么的/有哪些字段/某字段什么口径/备注说了什么），
   此时只需 block_hint 不需要 column。
 - analyze 用于数据解读型问题（有什么评价/哪个更好/趋势如何/数据说明什么/有无异常），
@@ -199,9 +199,9 @@ Do NOT mix languages. Column names may be in any language — quote as-is.
 > [行动建议：基于上述发现，下一步该做什么]
 
 质量标准：
-- 每条发现必须同时包含"数字"和"含义"："样品A819N vs 样品B201N"是数字，
-  "后整理工艺使横向强度降 75%"才是含义
-- 结论回答"所以呢"：不说"存在差异"，说"应优先选用样品A做高强度产品"
+- 每条发现必须同时包含“数字”和“含义”：“差旅费 4.8 万 vs 运输费 1.9 万”是数字，
+  “差旅费占总费用六成、集中在 1 月”才是含义
+- 结论回答“所以呢”：不说“存在差异”，说“应优先管控差旅费报销节奏”
 - 行动建议回答"那怎么办"：引用具体列名和数字，给可执行的下一步
 - 异常值是机会：**负值**、**极端值**、**突变** 通常藏着重磅发现，优先指出
 - 最多 3 个发现 + 1 条建议。宁少勿滥，每条必须有 So What。
@@ -242,7 +242,7 @@ Do NOT mix languages. Column names from the table may be in any language — quo
 > [使用建议：看完这些数据后该注意什么/做什么]
 
 质量标准：
-- 结论具体到可行动：说"这是对比 3 种浸胶液的工艺选型表"（可指导下一步），不说"这是测试数据表"
+- 结论具体到可行动：说“这是对比 3 个部门费率的费用归并表”（可指导下一步），不说“这是测试数据表”
 - 每条发现必须通过 So What 测试："这对使用者意味着什么？"
 - 列名用反引号：-\`成交套数\` 为月度口径
 - 百分比列按百分比说（-0.11 → -11%）
@@ -290,11 +290,11 @@ WRITE_SYSTEM = """你是 Excel 修改指令解析器。把指令转为语义写�
   不确定就输出 {"need_clarify":"具体疑问"}。禁止输出坐标/行列号/计算结果。
 - 指令波及多行（"都改成""全部加2"）或多张表时不要猜，输出 {"need_clarify":"要改哪一行/哪张表？"}。
 示例（列名以实际上下文为准）：
-"把1月云澜居的成交套数改成7" → {"find":{"sheet":"明细","keys":{"项目":"云澜居","月份":"1月"}},"set":{"column":"成交套数","mode":"set","value":"7"}}
-"云澜居2月创收加3万" → {"find":{"keys":{"项目":"云澜居","月份":"2月"}},"set":{"column":"创收(万)","mode":"add","value":"3"}}
-"青枫苑成交套数涨10%" → {"set":{"column":"成交套数","mode":"add_pct","value":"10"}}
-"青枫苑成交套数涨到10" → {"set":{"column":"成交套数","mode":"set","value":"10"}}
-"所有项目都改成5套" → {"need_clarify":"指令涉及多行，要改哪一行？"}"""
+“把1月差旅费的金额改成20000” → {"find":{"sheet":"销售部","keys":{"月份":"1","费用项目":"差旅费"}},"set":{"column":"金额（元）","mode":"set","value":"20000"}}
+“2月运输费金额加3000” → {"find":{"sheet":"销售部","keys":{"月份":"2","费用项目":"运输费"}},"set":{"column":"金额（元）","mode":"add","value":"3000"}}
+“1月差旅费金额涨10%” → {"find":{"sheet":"销售部","keys":{"月份":"1","费用项目":"差旅费"}},"set":{"column":"金额（元）","mode":"add_pct","value":"10"}}
+“1月差旅费金额涨到20000” → {"find":{"sheet":"销售部","keys":{"月份":"1","费用项目":"差旅费"}},"set":{"column":"金额（元）","mode":"set","value":"20000"}}
+“所有费用都改成5000” → {"need_clarify":"指令涉及多行，要改哪一行？"}"""
 
 
 def write_intent(instruction, context, fn=None):
@@ -476,7 +476,20 @@ def resolve_write_plan(plan, mirror):
         return {"ok": False, "ambiguous": True,
                 "clarify": f"命中 {len(cands)} 行，请补充行键使唯一（如月份/部门）",
                 "candidates": cands[:8]}
-    return {"ok": True, "op": cands[0]}
+    op = cands[0]
+    # LLM 常把数字输出成字符串（"12345"）：规范数字串归一为数值，
+    # 消除"向数值列写入文本"的误警告；"007"/"12.50" 等非规范串保持原样（可能是编号）
+    v = op.get("value")
+    if isinstance(v, str):
+        t = v.strip()
+        for cast in (int, float):
+            try:
+                if str(cast(t)) == t:
+                    op["value"] = op["operand"] = cast(t)
+                break
+            except ValueError:
+                continue
+    return {"ok": True, "op": op}
 
 
 def mirror_context(mirror, sample_rows=3, max_blocks=40):
