@@ -82,16 +82,6 @@ engine/
 └── llm.py        provider abstraction (BYOK, OpenAI-compatible)
 ```
 
-## Roadmap
-
-- [x] English UI（中/EN 一键切换，AI 回答跟随界面语言）
-- [x] Desktop app（Tauri 2，拖文件即开，可选托盘）
-- [x] API-first（31 个端点全功能暴露，`/api/docs` 自描述）
-- [ ] Public release with full challenge corpus
-- [ ] macOS / LibreOffice write-back path
-- [ ] Hosted version (no install)
-- [ ] Full i18n for engine messages (validation / error texts)
-
 ## License
 
 AGPL-3.0 — use it, fork it, ship it (open your modifications). Closed-source commercial licensing: open an issue or contact the maintainer.
