@@ -1,12 +1,15 @@
 # Gewu (格物) — Excel Understanding Agent
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 **An open-source agent that reads real-world spreadsheets the way a careful analyst does — including the messy ones nobody admits to making.**
 
-Merged cells. Multi-level headers. Floating meta rows. Annotation lines. A second table hiding at row 23 with restarted serial numbers. Every tool you've tried reads that as garbage. Gewu segments it, builds a header tree, and lets an LLM answer questions over the actual structure — then, if you own the file, writes results back through real Excel COM.
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows&logoColor=white)
+![Tauri 2](https://img.shields.io/badge/Desktop-Tauri_2-FFC131?logo=tauri&logoColor=black)
 
-- **Language**: Python (engine) · Tauri (desktop shell) · 中文/English UI
-- **License**: MIT
-- **Status**: preparing public release
+Merged cells. Multi-level headers. Floating meta rows. Annotation lines. A second table hiding at row 23 with restarted serial numbers. Every tool you've tried reads that as garbage. Gewu segments it, builds a header tree, and lets an LLM answer questions over the actual structure — then, if you own the file, writes results back through real Excel COM.
 
 ---
 
@@ -92,7 +95,3 @@ engine/
 ## License
 
 AGPL-3.0 — use it, fork it, ship it (open your modifications). Closed-source commercial licensing: open an issue or contact the maintainer.
-
----
-
-中文文档与说明：[README.zh-CN.md](README.zh-CN.md)

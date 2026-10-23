@@ -31,6 +31,7 @@ samples/示例A部项目日报0829.xlsx
 samples/日报-事业部A.xlsx
 samples/总部经营数据源2026.xlsx
 samples/质量整改示例表.xlsx
+samples/物料清单示例.xlsx
 tests/golden/示例A部项目日报0829.json
 tests/golden/日报-事业部A.json
 tests/golden/总部经营数据源2026.json
@@ -45,5 +46,5 @@ tests/sandbox/
 ask_test.json
 state1.json
 docs/OPEN-SOURCE-PREP.md
-logs/
+docs/social/
 logs/
