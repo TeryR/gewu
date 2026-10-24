@@ -150,6 +150,15 @@ def static_suite(html):
     check("拖中轻量同步", "syncAdjustUI" in FULL_SRC)
     check("i18n adj_hint 双语", FULL_SRC.count("adj_hint:") == 2)
     check("帮助面板有调整范围行", "📐调整范围" in html)
+    check("拖拽命中穿透 elementsFromPoint", "document.elementsFromPoint" in FULL_SRC)
+    check("调整模式彩框不吃点击", "if(adj)d.style.pointerEvents='none'" in FULL_SRC)
+    check("贴顶标签翻进框内防裁切", "标签翻进框内" in FULL_SRC)
+    check("平移钮悬停说明双语", FULL_SRC.count("adj_move_tt") >= 3)
+    check("无头拖拽数学测试在库", "test_adj_drag.js" in os.listdir("tests"))
+    check("块 id=0 假值陷阱已修", "if(blockId==null)return" in FULL_SRC
+          and "if(blockId==null){" in FULL_SRC)
+    check("滚动贴顶标签动态翻转", "addEventListener('scroll'" in FULL_SRC
+          and "翻进框内" in FULL_SRC)
 
 
 # ==================== B. API 集成层（动态层地面部队） ====================

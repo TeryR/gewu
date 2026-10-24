@@ -93,6 +93,7 @@ function drawOverlays(){
     });
   });
   const wrap=document.getElementById('gridWrap'), wr=wrap.getBoundingClientRect();
+  const scTop=document.getElementById('stage').getBoundingClientRect().top;  // 裁切边界=滚动视口顶
   S.blocks.forEach(b=>{
     const t=typeOf(b), a=anchor(bboxOf(b)), [r1,c1,r2,c2]=bboxOf(b);
     if(!a)return;
@@ -109,8 +110,11 @@ function drawOverlays(){
     d.onmouseenter=()=>{d.dataset.boost='hover';paintAll()};
     d.onmouseleave=()=>{d.dataset.boost='';paintAll()};
     d.onclick=()=>{if(adj)return;sel=b.id;showDetail(b);drawOverlays()};
+    if(adj)d.style.pointerEvents='none';  // 调整模式：彩框不吃点击，点两角/拖拽直达格子
     if(sel===b.id&&!adj)_adjHandles(d,b.id);   // 选中即出把手：直接拖边/角调整
     ov.appendChild(d);
+    if(d.getBoundingClientRect().top-scTop<12)
+      d.querySelector('.tag').style.top='2px';   // 贴顶块：标签翻进框内，避免被裁一半
   });
   if(adj){                       // 调整范围模式的橙色虚线预览（带把手可直接拖）
     const e1=anchorCell(adj.vals[0],adj.vals[1]), e2=anchorCell(adj.vals[2],adj.vals[3]);
@@ -121,8 +125,9 @@ function drawOverlays(){
       d.style.cssText=`position:absolute;left:${p.left-wr.left}px;top:${p.top-wr.top}px;
         width:${q.right-p.left}px;height:${q.bottom-p.top}px;border:2px dashed #ea580c;
         border-radius:4px;pointer-events:none;z-index:6`;
-      d.innerHTML=`<span style="position:absolute;left:4px;top:-20px;font-size:11px;
-        color:#ea580c;font-weight:700;white-space:nowrap">${t('adj_prev')}</span>`;
+      d.innerHTML=`<span style="position:absolute;left:4px;top:2px;font-size:11px;
+        color:#ea580c;font-weight:700;white-space:nowrap;background:rgba(255,255,255,.9);
+        padding:0 4px;border-radius:6px">${t('adj_prev')}</span>`;
       _adjHandles(d,null);
       ov.appendChild(d);
     }
@@ -157,6 +162,18 @@ document.getElementById('gridWrap').addEventListener('click',e=>{
   if(!adj)return;
   const td=e.target.closest('td[data-r]');
   if(td)adjCellClick(td);
+});
+/* 滚动时贴顶块标签动态翻进框内（只动标签样式，不整页重绘） */
+let _tagT;
+document.getElementById('stage').addEventListener('scroll',()=>{
+  clearTimeout(_tagT);
+  _tagT=setTimeout(()=>{
+    const stTop=document.getElementById('stage').getBoundingClientRect().top;   // 视口顶才是裁切边界
+    document.querySelectorAll('#overlays .blk').forEach(b=>{
+      const tag=b.querySelector('.tag');if(!tag)return;
+      tag.style.top=(b.getBoundingClientRect().top-stTop<12)?'2px':'';
+    });
+  },80);
 });
 function bboxOf(b){return (edits[b.id]&&edits[b.id].user_bbox)||b.bbox}
 function startAdjust(id){
@@ -193,16 +210,17 @@ function _adjHandles(host, blockId){
   .forEach(([h,cur])=>{
     const hd=document.createElement('div');
     hd.style.cssText=`position:absolute;${P[h]};width:11px;height:11px;background:#fff;
-      border:2px solid ${blockId?'#2563eb':'#ea580c'};border-radius:3px;cursor:${cur};z-index:7;
+      border:2px solid ${blockId==null?'#ea580c':'#2563eb'};border-radius:3px;cursor:${cur};z-index:7;
       pointer-events:auto`;
     hd.onmousedown=e=>adjHandleDown(e,blockId,h);
     host.appendChild(hd);
   });
-  if(!blockId){                        // 调整模式：整框平移把手
+  if(blockId==null){                  // 仅调整模式预览：整框平移把手（块 id 可为 0，不能当假值）
     const mv=document.createElement('div');
-    mv.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);'+
-      'padding:2px 10px;background:#ea580c;color:#fff;border-radius:10px;font-size:10px;'+
-      'cursor:move;z-index:7;white-space:nowrap;pointer-events:auto';
+    mv.title=t('adj_move_tt');
+    mv.style.cssText='position:absolute;right:4px;top:2px;padding:1px 8px;'+
+      'background:rgba(234,88,12,.85);color:#fff;border-radius:8px;font-size:10px;'+
+      'cursor:move;z-index:8;white-space:nowrap;pointer-events:auto';
     mv.textContent=t('adj_move');
     mv.onmousedown=e=>adjHandleDown(e,null,'move');
     host.appendChild(mv);
@@ -211,7 +229,7 @@ function _adjHandles(host, blockId){
 function adjHandleDown(e,blockId,h){
   e.stopPropagation();e.preventDefault();
   if(!adj){
-    if(!blockId)return;
+    if(blockId==null)return;          // null=预览把手以外的误触；0 是合法块 id
     startAdjust(blockId);
   }
   if(!adj)return;
@@ -220,9 +238,13 @@ function adjHandleDown(e,blockId,h){
   document.addEventListener('mouseup',adjDragUp);
 }
 function cellAt(e){
-  const el=document.elementFromPoint(e.clientX,e.clientY);
-  const td=el&&el.closest?el.closest('td[data-r]'):null;
-  return td?{r:+td.dataset.r,c:+td.dataset.c}:null;
+  // 命中穿透：把手/彩框盖在格子上（缩边时光标在框内），取该点元素栈里第一个 td
+  const stack=document.elementsFromPoint(e.clientX,e.clientY)||[];
+  for(const el of stack){
+    const td=el.closest?el.closest('td[data-r]'):null;
+    if(td)return{r:+td.dataset.r,c:+td.dataset.c};
+  }
+  return null;
 }
 function adjDragMove(e){
   if(!adj||!adj.drag)return;
@@ -693,8 +715,9 @@ const I18N={
   tray_label:"关闭窗口时缩到系统托盘（引擎保持运行，重开秒进；取消勾选=直接退出）",
   tray_note:"仅桌面应用生效，改后重启应用即可。", copy_badge:"副本",
   guide:'<b>怎么用：</b><b>蓝框=表格</b>（问答和改数都发生在蓝框里，只需扫一眼框得对不对）；<b>黄虚线=标题/备注</b>（不当表格处理，<u>不用管它</u>；标了「表内批注」的是表格中间夹的一行备注，正常现象）；<b>红框=机器拿不准</b>（最好点开看一眼）。没问题 → 点右上「检查无误，冻结」→ 右侧面板开始问答与改数。框不对 → 点色块改类型；范围不对 → 选中后直接拖蓝框边角调整。<button onclick="this.parentNode.remove()" style="margin-left:auto">知道了 ✕</button>',
-  adj_title:'调整范围（区块',adj_hint:'直接拖橙框的边/角/中心钮，或在表格上点两下选范围，或改数字。确定后随「冻结」生效，表头和列名会在新范围里自动重新识别。',
-  adj_move:'⇔ 拖动整框',adj_r1:'行起',adj_c1:'列起',adj_r2:'行止',adj_c2:'列止',
+  adj_title:'调整范围（区块',adj_hint:'直接拖橙框的边/角，拖「✥ 移动整框」钮可平移位置，或在表格上点两下选范围，或改数字。确定后随「冻结」生效，表头和列名会在新范围里自动重新识别。',
+  adj_move:'✥ 移动整框',adj_move_tt:'按住拖动可平移整个框的位置（不改变大小）',
+  adj_r1:'行起',adj_c1:'列起',adj_r2:'行止',adj_c2:'列止',
   adj_ok2:'确定调整',adj_cancel:'取消',adj_prev:'新范围预览',
   adj_bad:'范围不合法：行止≥行起、列止≥列起，且都≥1',
   adj_btn:'📐 调整范围',adj_btn_t:'框盖小了/劈开了/圈多了？自己重画这块的范围；表头树和记录会在新范围里由机器重新识别，点冻结生效。与其他未忽略区块重叠会拦下',
@@ -789,8 +812,9 @@ const I18N={
   <div style="margin-top:14px;padding:8px 10px;background:#f8fafc;border-left:3px solid #94a3b8;color:#64748b;font-size:12.5px">
     Every edit is re-validated before writing; headers, summary rows, formula cells and ignored blocks are never written. All manual marks (types/read-only/glossary/row notes) live only in this tool's mirror and <b>never modify your file</b> (except explicit edit commands).</div>`,
    guide:'<b>How to use:</b> <b>Blue = table</b> (Q&A and edits happen inside blue frames — just glance they are right); <b>dashed yellow = title/notes</b> (not treated as a table; blocks tagged “in-table note” are remark rows inside a table — normal); <b>red = machine unsure</b> (worth a look). All good → click “Freeze” top-right → start in the right panel. Wrong frame → click the block and switch its type; wrong range → select it and drag the frame\u2019s edges/corners. <button onclick="this.parentNode.remove()" style="margin-left:auto">Got it ✕</button>',
-   adj_title:'Adjust range (block',adj_hint:'Drag the orange frame by its edges, corners, or the center grip; or click two corners on the grid; or edit the numbers. Applies on Freeze, with headers and columns re-detected inside the new range.',
-   adj_move:'⇔ Move frame',adj_r1:'Row from',adj_c1:'Col from',adj_r2:'Row to',adj_c2:'Col to',
+   adj_title:'Adjust range (block',adj_hint:'Drag the orange frame by its edges or corners, use the "✥ Move" pill to slide it, click two corners on the grid, or edit the numbers. Applies on Freeze, with headers and columns re-detected inside the new range.',
+   adj_move:'✥ Move',adj_move_tt:'Hold and drag to slide the whole frame (size unchanged)',
+   adj_r1:'Row from',adj_c1:'Col from',adj_r2:'Row to',adj_c2:'Col to',
    adj_ok2:'Apply',adj_cancel:'Cancel',adj_prev:'New range preview',
    adj_bad:'Invalid range: row-to ≥ row-from, col-to ≥ col-from, all ≥ 1',
    adj_btn:'📐 Adjust range',adj_btn_t:'Frame too small, split, or too wide? Redraw it; the header tree and records are re-detected inside the new range. Applies on Freeze. Overlaps with another non-ignored block are rejected.',
