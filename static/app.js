@@ -1,6 +1,7 @@
 let S=null, edits={}, sel=null;
 const COLORS={table:"#2f6fdb",note:"#d9a406",mixed:"#d43b3b",ignore:"#888888"};
 const LABELS={table:"🟦数据表",note:"🟨文本/批注",mixed:"🟥混合待复核",ignore:"⬜忽略"};
+function lbl(k){return t("lbl_"+k)||LABELS[k]}   // 类型标签双语
 
 async function loadSheets(){
   const sheets=await (await fetch('/api/sheets')).json();
@@ -104,7 +105,7 @@ function drawOverlays(){
     d.style.cssText+=`left:${p.left-wr.left}px;top:${p.top-wr.top}px;width:${q.right-p.left}px;
       height:${q.bottom-p.top}px;border-color:${COLORS[t]}`;
     const nested=insideOf[b.id]!==undefined;
-    d.innerHTML=`<span class="tag" style="color:${COLORS[t]}">${LABELS[t]} #${b.id} ${b.score??''}${nested?' · 表内批注':''}</span>`;
+    d.innerHTML=`<span class="tag" style="color:${COLORS[t]}">${lbl(t)} #${b.id} ${b.score??''}${nested?' · '+t('nested_note'):''}</span>`;
     d.onmouseenter=()=>{d.dataset.boost='hover';paintAll()};
     d.onmouseleave=()=>{d.dataset.boost='';paintAll()};
     d.onclick=()=>{if(adj)return;sel=b.id;showDetail(b);drawOverlays()};
@@ -409,38 +410,36 @@ function showDetail(b){
   const ty=typeOf(b), d=document.getElementById('detail');
   const h=b.header||{};
   let rows=`
-   <b>${t('d_type')}</b><span>${LABELS[ty]}</span>
+   <b>${t('d_type')}</b><span>${lbl(ty)}</span>
    <b>${t('d_pos')}</b><span>r${b.bbox[0]}-r${b.bbox[2]} × c${b.bbox[1]}-c${b.bbox[3]}</span>
    ${b.engine_bbox?`<b>${t('d_orig')}</b><span class="hint">r${b.engine_bbox[0]}-r${b.engine_bbox[2]} × c${b.engine_bbox[1]}-c${b.engine_bbox[3]}</span>`:''}
    <b>${t('d_score')}</b><span>${b.score}</span>`;
   if(h.header_rows)rows+=`<b>${t('d_hdr')}</b><span>r${h.header_rows.join(',r')}</span>`;
   if(h.title_text)rows+=`<b>${t('d_title')}</b><span>${esc(h.title_text)}</span>`;
   if(h.floating_rows&&h.floating_rows.length)rows+=`<b>${t('d_float')}</b><span>r${h.floating_rows.join(',r')}</span>`;
-  if(h.summary_rows&&h.summary_rows.length)rows+=`<b>${t('d_summary')}</b><span>r${h.summary_rows.join(',r')}（写保护）</span>`;
+  if(h.summary_rows&&h.summary_rows.length)rows+=`<b>${t('d_summary')}</b><span>r${h.summary_rows.join(',r')}${t('d_summary_prot')}</span>`;
   if(h.dup_header_names&&h.dup_header_names.length)rows+=`<b>${t('d_dups')}</b><span>${h.dup_header_names.join('、')}</span>`;
   if(h.cross_tab)rows+=`<b>${t('d_cross')}</b><span>是</span>`;
-  if(h.col_tree)rows+=`<b>${t('d_fields')}</b><span>${h.col_tree.filter(n=>n.path&&n.path.length).length} 个叶子列</span>`;
+  if(h.col_tree)rows+=`<b>${t('d_fields')}</b><span>${h.col_tree.filter(n=>n.path&&n.path.length).length} ${t('d_leaves')}</span>`;
   if(b.signals&&!b.annotation)rows+=`<b>${t('d_signal')}</b><span>文本${b.signals.text_r} 数值${b.signals.num_r} 边框${b.signals.perimeter_border}</span>`;
-  if(b.annotation)rows+=`<b>${t('d_anno')}</b><span>是（已从表格剥离）</span>`;
+  if(b.annotation)rows+=`<b>${t('d_anno')}</b><span>${t('d_anno_v')}</span>`;
   if(b.attach){
-    rows+=`<b>行内备注</b><span>挂到 表#${b.attach.table_block_id} 第${b.attach.row_no}行<br>
+    rows+=`<b>${t('attach_h')}</b><span>${t('attach_full').replace('{id}',b.attach.table_block_id).replace('{r}',b.attach.row_no)}<br>
       <span class="hint">${esc((b.attach.text||'').slice(0,80))}</span><br>
-      <button onclick="doDetach(${b.id})">取消挂接（不算这行的信息）</button></span>`;
+      <button onclick="doDetach(${b.id})">${t('detach_btn')}</button></span>`;
   }
-  const switchTitle=(ty==='note')
-    ?'该块引擎判定为文本（无列结构）：切为数据表仅作视觉标记，不会进入问答'
-    :'把这块按另一种类型对待；点冻结才生效，可反复切换';
-  rows+=`<b>操作</b><span>
-    <button onclick="setEdit(${b.id},'user_type','${nextType(ty)}')" title="${switchTitle}">切为${LABELS[nextType(ty)]}</button>
-    <button onclick="setEdit(${b.id},'readonly',1)" title="应用内只读：本工具禁止改这块的数（问答不受影响）；文件本身不变，Excel/WPS 里仍可编辑">🔒只读</button>
-    <button onclick="setEdit(${b.id},'readonly',0)" title="解除只读">🔓可写</button>
+  const switchTitle=(ty==='note')?t('switch_tt_note'):t('switch_tt');
+  rows+=`<b>${t('ops_h')}</b><span>
+    <button onclick="setEdit(${b.id},'user_type','${nextType(ty)}')" title="${switchTitle}">${t('btn_switch')}${lbl(nextType(ty))}</button>
+    <button onclick="setEdit(${b.id},'readonly',1)" title="${t('btn_ro_tt')}">${t('btn_ro')}</button>
+    <button onclick="setEdit(${b.id},'readonly',0)" title="${t('btn_rw_tt')}">${t('btn_rw')}</button>
     <button onclick="startAdjust(${b.id})" title="${t('adj_btn_t')}">${t('adj_btn')}</button></span>`;
   if(edits[b.id]){
     const e=edits[b.id];const parts=[];
-    if(e.user_type)parts.push('切为'+LABELS[e.user_type]);
+    if(e.user_type)parts.push(t('pend_type')+lbl(e.user_type));
     if(e.user_bbox)parts.push(t('adj_pending')+` r${e.user_bbox[0]}-r${e.user_bbox[2]} × c${e.user_bbox[1]}-c${e.user_bbox[3]}`);
-    if(e.readonly!==undefined)parts.push(e.readonly?'设为只读🔒':'设为可写🔓');
-    rows+=`<b>已改(未冻结)</b><span>${parts.join('，')} <button onclick="revertEdit(${b.id})" title="撤销这块的全部未冻结修改">↩ 撤销本块修改</button></span>`;
+    if(e.readonly!==undefined)parts.push(e.readonly?t('pend_ro'):t('pend_rw'));
+    rows+=`<b>${t('pend_h')}</b><span>${parts.join('，')} <button onclick="revertEdit(${b.id})" title="${t('revert_tt')}">${t('revert_btn')}</button></span>`;
   }
   d.innerHTML=rows;
   if(ty==='table'){renderGlossary(b);renderRules()}
@@ -474,9 +473,9 @@ async function delRule(){
 async function runRulesCheck(){
   const out=await (await fetch('/api/rules_check')).json();
   document.getElementById('rulesCheckOut').innerHTML=out.length?
-    `<b style="color:#b91c1c">✗ ${out.length} 处违规：</b><br>`+out.slice(0,20).map(x=>
+    `<b style="color:#b91c1c">✗ ${out.length} ${t('rules_violations')}</b><br>`+out.slice(0,20).map(x=>
       `· [${esc(x.sheet)}] r${x.row} 「${esc(x.column)}」=${x.value} ${esc(x.问题)}(${x.severity})`).join('<br>')
-    :'<span style="color:#15803d">✓ 现有数据全部符合规则</span>';
+    :`<span style="color:#15803d">${t('rules_all_pass')}</span>`;
 }
 async function renderGlossary(b){
   const h=b.header||{};
@@ -493,10 +492,10 @@ async function renderGlossary(b){
       <span style="flex:0 0 38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
             title="${esc(c)}">${esc(c)}</span>
       <input id="gl_${b.id}_${cols.indexOf(c)}" style="flex:1;font:11px system-ui;padding:2px 4px"
-             placeholder="口径注释…" value="${esc(byCol[c]||'')}">
-      <button onclick="saveGlossary('${esc(c)}',${b.id},${cols.indexOf(c)})">存</button>
+             placeholder="${t('gl_ph')}" value="${esc(byCol[c]||'')}">
+      <button onclick="saveGlossary('${esc(c)}',${b.id},${cols.indexOf(c)})">${t('gl_save')}</button>
     </div>`).join('')+
-    `<div class="hint" style="margin-top:4px">口径注释会自动注入问答与写指令的模型上下文（同名不同口径的列靠它消歧）</div>`;
+    `<div class="hint" style="margin-top:4px">${t('gl_hint')}</div>`;
 }
 async function saveGlossary(col,bid,idx){
   const v=document.getElementById(`gl_${bid}_${idx}`).value.trim();
@@ -699,7 +698,19 @@ const I18N={
   adj_ok2:'确定调整',adj_cancel:'取消',adj_prev:'新范围预览',
   adj_bad:'范围不合法：行止≥行起、列止≥列起，且都≥1',
   adj_btn:'📐 调整范围',adj_btn_t:'框盖小了/劈开了/圈多了？自己重画这块的范围；表头树和记录会在新范围里由机器重新识别，点冻结生效。与其他未忽略区块重叠会拦下',
-  adj_pending:'范围调整为',d_orig:'引擎原范围',frozen_part:'部分修改未生效（其余已冻结）：'
+  adj_pending:'范围调整为',d_orig:'引擎原范围',frozen_part:'部分修改未生效（其余已冻结）：',
+  lbl_table:'🟦数据表',lbl_note:'🟨文本/批注',lbl_mixed:'🟥混合待复核',lbl_ignore:'⬜忽略',
+  nested_note:'表内批注',d_summary_prot:'（写保护）',d_leaves:'个叶子列',d_anno_v:'是（已从表格剥离）',
+  attach_h:'行内备注',attach_full:'挂到 表#{id} 第{r}行',detach_btn:'取消挂接（不算这行的信息）',
+  switch_tt:'把这块按另一种类型对待；点冻结才生效，可反复切换',
+  switch_tt_note:'该块引擎判定为文本（无列结构）：切为数据表仅作视觉标记，不会进入问答',
+  btn_switch:'切为',btn_ro:'🔒只读',btn_rw:'🔓可写',
+  btn_ro_tt:'应用内只读：本工具禁止改这块的数（问答不受影响）；文件本身不变，Excel/WPS 里仍可编辑',
+  btn_rw_tt:'解除只读',
+  ops_h:'操作',pend_h:'已改(未冻结)',pend_type:'切为',pend_ro:'设为只读🔒',pend_rw:'设为可写🔓',
+  revert_btn:'↩ 撤销本块修改',revert_tt:'撤销这块的全部未冻结修改',
+  gl_ph:'口径注释…',gl_save:'存',gl_hint:'口径注释会自动注入问答与写指令的模型上下文（同名不同口径的列靠它消歧）',
+  glossary_init:'选中数据表区块后可给字段加口径注释',rules_init:'（选中数据表后可配置）'
  },
  "en":{
   brand_tag:"Intelligence workbench for complex spreadsheets", mask:"Mask", opacity:"Opacity",
@@ -783,7 +794,19 @@ const I18N={
    adj_ok2:'Apply',adj_cancel:'Cancel',adj_prev:'New range preview',
    adj_bad:'Invalid range: row-to ≥ row-from, col-to ≥ col-from, all ≥ 1',
    adj_btn:'📐 Adjust range',adj_btn_t:'Frame too small, split, or too wide? Redraw it; the header tree and records are re-detected inside the new range. Applies on Freeze. Overlaps with another non-ignored block are rejected.',
-   adj_pending:'Range set to',d_orig:'Engine range',frozen_part:'Some edits were rejected (the rest is frozen):'
+   adj_pending:'Range set to',d_orig:'Engine range',frozen_part:'Some edits were rejected (the rest is frozen):',
+   lbl_table:'🟦 Table',lbl_note:'🟨 Text/note',lbl_mixed:'🟥 Mixed review',lbl_ignore:'⬜ Ignore',
+   nested_note:'in-table note',d_summary_prot:' (write-protected)',d_leaves:'leaf columns',d_anno_v:'Yes (carved out of the table)',
+   attach_h:'In-row note',attach_full:'attached to block #{id}, row {r}',detach_btn:'Detach (not counted as this row\u2019s info)',
+   switch_tt:'Treat this block as the other type; applies on freeze, switchable anytime',
+   switch_tt_note:'Engine classified this as text (no column structure): switching to table is a visual mark only, never enters Q&A',
+   btn_switch:'Switch to ',btn_ro:'🔒 Read-only',btn_rw:'🔓 Writable',
+   btn_ro_tt:'In-app read-only: this tool refuses to edit the block (Q&A unaffected). The file itself is untouched — still editable in Excel/WPS',
+   btn_rw_tt:'Clear the read-only mark',
+   ops_h:'Actions',pend_h:'Changed (not frozen)',pend_type:'switch to ',pend_ro:'set read-only 🔒',pend_rw:'set writable 🔓',
+   revert_btn:'↩ Revert this block',revert_tt:'Revert all unfrozen changes of this block',
+   gl_ph:'definition…',gl_save:'Save',gl_hint:'Definitions are injected into the LLM context of Q&A and edit commands (disambiguates same-named columns)',
+   glossary_init:'Select a table block to add field definitions',rules_init:'(select a table block to configure)'
  }
 };
 let LANG=localStorage.getItem('gewu-lang')||'zh';

@@ -208,7 +208,7 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
     <div id="detail" class="kv"></div>
     <details id="glossaryBox" style="display:none;margin-top:10px;border-top:1px solid #e2e8f0;padding-top:6px">
     <summary style="cursor:pointer;font-weight:600" data-i18n="glossary">📖 字段口径词典</summary>
-    <div id="glossaryList" class="hint">选中数据表区块后可给字段加口径注释</div>
+    <div id="glossaryList" class="hint" data-i18n="glossary_init">选中数据表区块后可给字段加口径注释</div>
     </details>
     <details id="rulesBox" style="display:none;margin-top:10px;border-top:1px solid #e2e8f0;padding-top:6px">
     <summary style="cursor:pointer;font-weight:600" data-i18n="rules_h">📏 业务规则（值域）</summary>
@@ -226,7 +226,7 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
     <button style="font-size:11px;padding:2px 8px" onclick="runRulesCheck()">▶ <span data-i18n="rules_check">全表体检</span></button>
     <span class="hint" style="font-size:11px" data-i18n="rules_check_note">按现有数据跑一遍规则，列出违规行</span>
   </div>
-  <div id="rulesList" class="hint" style="font-size:11.5px">（选中数据表后可配置）</div>
+  <div id="rulesList" class="hint" style="font-size:11.5px" data-i18n="rules_init">（选中数据表后可配置）</div>
   <div id="rulesCheckOut" style="font-size:11.5px"></div>
   </details>
   </div>
