@@ -72,6 +72,11 @@ def _init(db):
         con.execute("ALTER TABLE workbooks ADD COLUMN change_json TEXT")
     if "engine_ver" not in _cols:
         con.execute("ALTER TABLE workbooks ADD COLUMN engine_ver TEXT")
+    _bcols = {r[1] for r in con.execute("PRAGMA table_info(blocks)")}
+    if "user_bbox" not in _bcols:
+        con.execute("ALTER TABLE blocks ADD COLUMN user_bbox TEXT")
+    if "engine_bbox" not in _bcols:
+        con.execute("ALTER TABLE blocks ADD COLUMN engine_bbox TEXT")
     con.commit()
     return con
 
@@ -241,6 +246,92 @@ def _attach_row_notes(cells, seg_blocks, off_keys, sheet_name, rules):
     return attached, detail
 
 
+def _apply_geometry(con, wid, wb, rules, items):
+    """人工调整区块范围（user_bbox=[r1,c1,r2,c2]）：校验 + 落库 + 语义重建。
+
+    手动只管几何：用户给范围，表头树/记录/汇总公式仍由引擎在该范围内自动重跑
+    （表块）；文本块仅移动框。逐条应用，后一条的重叠判定能看到前一条的最新范围。
+    重叠护栏：与其他未忽略区块相交即拒——唯一豁免是"表块完整包住文本批注块"
+    （引擎自己的表内批注形态，本来就是嵌套的）。
+    返回 (applied, rejected=[{block_db_id, reason}])。"""
+    from .headers import build_header_tree as _bht
+    applied, rejected = 0, []
+    for it in items:
+        row = con.execute("SELECT * FROM blocks WHERE id=? AND workbook_id=?",
+                          (it["block_db_id"], wid)).fetchone()
+        if not row:
+            rejected.append({"block_db_id": it.get("block_db_id"),
+                             "reason": "区块不存在（镜像已重建，请刷新后重试）"})
+            continue
+        try:
+            r1, c1, r2, c2 = [int(x) for x in it["user_bbox"]]
+            if not (1 <= r1 <= r2 and 1 <= c1 <= c2):
+                raise ValueError
+        except (TypeError, ValueError):
+            rejected.append({"block_db_id": row["id"], "reason":
+                             f"范围非法 {list(it['user_bbox'])}：应为 [行起,列起,行止,列止]，起≤止且≥1"})
+            continue
+        sheet = next((x for x in wb["sheets"] if x["name"] == row["sheet_name"]), None)
+        if sheet is None:
+            rejected.append({"block_db_id": row["id"], "reason": "sheet 不存在"})
+            continue
+        mr, mc = sheet["declared_dims"]
+        if r2 > mr + 1 or c2 > mc + 1:
+            rejected.append({"block_db_id": row["id"],
+                             "reason": f"超出 sheet 范围（约 {mr} 行 × {mc} 列）"})
+            continue
+        clash = None
+        for sb in con.execute(
+                "SELECT * FROM blocks WHERE workbook_id=? AND sheet_name=? AND id<>?",
+                (wid, row["sheet_name"], row["id"])):
+            if (sb["user_type"] or sb["type"]) == "ignore":
+                continue
+            sr1, sc1, sr2, sc2 = sb["r1"], sb["c1"], sb["r2"], sb["c2"]
+            if r1 <= sr2 and sr1 <= r2 and c1 <= sc2 and sc1 <= c2:
+                contained_note = ((sb["user_type"] or sb["type"]) == "note"
+                                  and r1 <= sr1 and sr2 <= r2 and c1 <= sc1 and sc2 <= c2)
+                if not contained_note:
+                    clash = (sb["block_id"], f"r{sr1}-r{sr2}×c{sc1}-c{sc2}")
+                    break
+        if clash:
+            rejected.append({"block_db_id": row["id"],
+                             "reason": f"与区块#{clash[0]}（{clash[1]}）重叠："
+                                       f"请先把该区块设为忽略，再调整本块范围"})
+            continue
+        eff_type = row["user_type"] or row["type"]
+        header_json, summary_json = row["header_json"], row["summary_formulas_json"]
+        # 表块缩小后残留记录会污染聚合 → 无论类型先清旧记录
+        con.execute("DELETE FROM records WHERE block_db_id=?", (row["id"],))
+        if row["type"] == "table" and eff_type == "table":
+            pseudo = {"id": row["block_id"], "bbox": [r1, c1, r2, c2], "type": "table"}
+            header = _bht(sheet, pseudo, rules)
+            pseudo["header"] = header          # _build_records 从 block["header"] 取表头
+            rows, _, summary_meta = _build_records(sheet["cells"], pseudo)
+            notes = {rn: txt for rn, txt in con.execute(
+                "SELECT row_no, text FROM row_notes WHERE workbook_id=? AND sheet_name=? "
+                "AND table_block_id=?", (wid, row["sheet_name"], row["block_id"]))}
+            for rec in rows:
+                if rec["_r"] in notes:
+                    rec["_note"] = notes[rec["_r"]]
+                con.execute(
+                    "INSERT INTO records(block_db_id, row_no, is_summary, data_json) "
+                    "VALUES(?,?,?,?)",
+                    (row["id"], rec["_r"], int(rec.get("_summary", False)),
+                     json.dumps(rec, ensure_ascii=False, default=str)))
+            header_json = json.dumps(header or {}, ensure_ascii=False)
+            summary_json = json.dumps(summary_meta, ensure_ascii=False)
+        con.execute(
+            "UPDATE blocks SET r1=?, c1=?, r2=?, c2=?, "
+            "engine_bbox=COALESCE(engine_bbox, ?), user_bbox=?, "
+            "header_json=?, summary_formulas_json=? WHERE id=?",
+            (r1, c1, r2, c2,
+             json.dumps([row["r1"], row["c1"], row["r2"], row["c2"]]),
+             json.dumps([r1, c1, r2, c2]),
+             header_json, summary_json, row["id"]))
+        applied += 1
+    return applied, rejected
+
+
 def build_mirror(path: str, db: str = DEFAULT_DB, rules=None) -> int:
     """解析并物化镜像；同文件重复构建会替换旧镜像。返回 workbook_id。"""
     from .rules import get_rules
@@ -265,9 +356,12 @@ def build_mirror(path: str, db: str = DEFAULT_DB, rules=None) -> int:
         prev = {"status": prev[0], "frozen_at": prev[1]} if prev else None
         old_blocks = [dict(r) for r in con.execute(
             "SELECT sheet_name, block_id, r1, c1, r2, c2, type, user_type, "
-            "readonly, header_json FROM blocks WHERE workbook_id=?", (wid,))]
-        marks = {(b["sheet_name"], b["block_id"]): (b["user_type"], b["readonly"])
-                 for b in old_blocks if b["user_type"] or b["readonly"]}
+            "readonly, header_json, engine_bbox, user_bbox "
+            "FROM blocks WHERE workbook_id=?", (wid,))]
+        marks = {(b["sheet_name"], b["block_id"]):
+                 (b["user_type"], b["readonly"], b["user_bbox"])
+                 for b in old_blocks
+                 if b["user_type"] or b["readonly"] or b["user_bbox"]}
         old_offs = [(s, bid) for s, bid in con.execute(
             "SELECT sheet_name, block_id FROM note_attach_off WHERE workbook_id=?",
             (wid,))]
@@ -351,7 +445,10 @@ def build_mirror(path: str, db: str = DEFAULT_DB, rules=None) -> int:
     marks_apply, change = marks, None
     if takeover:
         def _key6(b):
-            return (b["sheet_name"], b["r1"], b["c1"], b["r2"], b["c2"], b["type"])
+            # 接管比对必须用引擎原始几何：r1..c2 可能已被人工调整过
+            e = json.loads(b["engine_bbox"]) if b.get("engine_bbox") else \
+                [b["r1"], b["c1"], b["r2"], b["c2"]]
+            return (b["sheet_name"], e[0], e[1], e[2], e[3], b["type"])
 
         def _paths(b):
             if b["type"] != "table":
@@ -363,22 +460,28 @@ def build_mirror(path: str, db: str = DEFAULT_DB, rules=None) -> int:
         old_key6 = {_key6(b): b for b in old_blocks}
         added = [k for k in new_key6_id if k not in old_key6]
         removed = [k for k in old_key6 if k not in new_key6_id]
+        # 带人工几何的块：存量 header_json 是"用户范围的列路径"，与引擎路径不可比；
+        # 排除出本比对，真实变化由下方重放后的路径比对兜底
         changed = [k for k in new_key6_id
                    if k in old_key6 and k[5] == "table"
+                   and not old_key6[k].get("user_bbox")
                    and _paths(old_key6[k]) != new_key6_paths.get(k)]
         fmt = lambda ks: [f"{k[0]}!r{k[1]}-r{k[3]}×c{k[2]}-c{k[4]}" for k in ks][:10]
-        # 人工标记迁移：结构键+列路径都没变的块才带过去（变了的需要人重新看过）
+        # 人工标记迁移：结构键+列路径都没变的块才带过去（变了的需要人重新看过；
+        # 带人工几何的块跳过路径比对——几何键一致即同一块，范围由重放接管）
         marks_apply, transferred = {}, 0
-        for (sname, bid), (ut, ro) in marks.items():
+        for (sname, bid), (ut, ro, ub) in marks.items():
             ob = old_by_id.get(bid)
             if not ob:
                 continue
             k6 = _key6(ob)
-            if k6 not in new_key6_id or (k6[5] == "table"
-                                         and _paths(ob) != new_key6_paths.get(k6)):
+            if k6 not in new_key6_id:
                 continue
-            if ut is not None or ro:
-                marks_apply[(sname, new_key6_id[k6])] = (ut, ro)
+            if (not ub) and k6[5] == "table" \
+                    and _paths(ob) != new_key6_paths.get(k6):
+                continue
+            if ut is not None or ro or ub:
+                marks_apply[(sname, new_key6_id[k6])] = (ut, ro, ub)
                 transferred += 1
         # 行内备注"人工解除"按黄块签名重映射（引擎 id 重新编号了）
         new_offs = [(sname, new_key6_id[_key6(ob)])
@@ -387,7 +490,48 @@ def build_mirror(path: str, db: str = DEFAULT_DB, rules=None) -> int:
         con.execute("DELETE FROM note_attach_off WHERE workbook_id=?", (wid,))
         con.executemany("INSERT OR IGNORE INTO note_attach_off VALUES(?,?,?)",
                         [(wid, s, b) for s, b in new_offs])
-        structural = bool(added or removed or changed)
+    # 人工标记（含人工几何）先回填，再重放几何：重叠豁免要看到最新 user_type
+    for (sname, bid), (ut, ro, ub) in marks_apply.items():
+        if ut is not None or ro or ub:
+            con.execute(
+                "UPDATE blocks SET user_type=COALESCE(?, user_type), readonly=COALESCE(?, readonly), "
+                "user_bbox=? WHERE workbook_id=? AND sheet_name=? AND block_id=?",
+                (ut, ro or None, ub, wid, sname, bid))
+    geom_items = []
+    for (sname, bid), (_, _, ub) in marks_apply.items():
+        if not ub:
+            continue
+        nb = con.execute("SELECT id FROM blocks WHERE workbook_id=? AND sheet_name=? "
+                         "AND block_id=?", (wid, sname, bid)).fetchone()
+        if nb:
+            geom_items.append({"block_db_id": nb[0], "user_bbox": json.loads(ub),
+                               "_key": (sname, bid)})
+    geom_dropped = []
+    if geom_items:
+        _g_app, g_rej = _apply_geometry(con, wid, wb, rules, geom_items)
+        for rj in g_rej:
+            key = next((g["_key"] for g in geom_items
+                        if g["block_db_id"] == rj["block_db_id"]), None)
+            if key:
+                # 接管后引擎块位移致旧人工范围失效 → 回退引擎范围，结构降级让人复核
+                geom_dropped.append(key)
+                con.execute("UPDATE blocks SET user_bbox=NULL WHERE id=?",
+                            (rj["block_db_id"],))
+        if takeover:
+            # 重放后的列路径 vs 冻结时的列路径：用户圈的范围里列变了 = 结构变化
+            for g in geom_items:
+                if g["_key"] in geom_dropped:
+                    continue
+                ob = old_by_id.get(g["_key"][1])
+                nb = con.execute(
+                    "SELECT type, header_json FROM blocks WHERE workbook_id=? "
+                    "AND sheet_name=? AND block_id=?",
+                    (wid, g["_key"][0], g["_key"][1])).fetchone()
+                if ob and nb and ob["type"] == "table" \
+                        and _paths(ob) != _paths(dict(nb)):
+                    changed.append(_key6(ob))
+    if takeover:
+        structural = bool(added or removed or changed) or bool(geom_dropped)
         was_frozen = prev and prev["status"] == "frozen"
         if was_frozen and not structural:
             # 冻结保护的是结构判定；纯数值变化结构不动 → 冻结自动保持，数值随重建刷新
@@ -395,10 +539,12 @@ def build_mirror(path: str, db: str = DEFAULT_DB, rules=None) -> int:
         elif was_frozen:
             change = {"type": "structure", "added": fmt(added), "removed": fmt(removed),
                       "changed": fmt(changed), "marks_transferred": transferred,
-                      "hint": "结构有变化，请复核变更块后重新冻结"}
+                      "hint": "结构有变化，请复核变更块后重新冻结"
+                              + (f"；{len(geom_dropped)} 个区块的人工范围已失效回退"
+                                 if geom_dropped else "")}
         else:
             change = {"type": "fresh", "marks_transferred": transferred} if transferred else None
-    # 同文件重建：回填冻结状态与人工标记（block_id 由引擎确定性生成，同文件同 id）
+    # 同文件重建：回填冻结状态（block_id 由引擎确定性生成，同文件同 id）
     keep_frozen = prev and prev["status"] == "frozen" and \
         (not takeover or not change or change.get("type") == "value-only")
     if keep_frozen:
@@ -406,14 +552,7 @@ def build_mirror(path: str, db: str = DEFAULT_DB, rules=None) -> int:
                     (prev["frozen_at"] or _now(), wid))
     elif takeover and prev and prev["status"] == "frozen":
         # 结构变化：冻结必须主动降级为待复核（行上的旧状态不能沿用）
-        con.execute("UPDATE workbooks SET status='parsed', frozen_at=NULL WHERE id=?",
-                    (wid,))
-    for (sname, bid), (ut, ro) in marks_apply.items():
-        if ut is not None or ro:
-            con.execute(
-                "UPDATE blocks SET user_type=COALESCE(?, user_type), readonly=COALESCE(?, readonly) "
-                "WHERE workbook_id=? AND sheet_name=? AND block_id=?",
-                (ut, ro or None, wid, sname, bid))
+        con.execute("UPDATE workbooks SET status='parsed', frozen_at=NULL WHERE id=?", (wid,))
     if change is not None or row is None:
         con.execute("UPDATE workbooks SET change_json=? WHERE id=?",
                     (json.dumps(change, ensure_ascii=False) if change else None, wid))
@@ -457,11 +596,17 @@ def apply_ops_to_mirror(workbook_id, db, path, ops):
     con.close()
 
 
-def freeze(workbook_id: int, db: str = DEFAULT_DB, edits: list | None = None):
-    """人工确认后冻结：edits=[{block_db_id, user_type?, readonly?}]。
-    返回 {applied, missed}：镜像若已重建，旧 db 主键会落空，missed>0 必须提示用户刷新。"""
+def freeze(workbook_id: int, db: str = DEFAULT_DB, edits: list | None = None,
+           wb=None, rules=None):
+    """人工确认后冻结：edits=[{block_db_id, user_type?, readonly?, user_bbox?}]。
+    user_bbox=[r1,c1,r2,c2]：人工修正区块几何——表头树与记录在新范围内由引擎重建。
+    返回 {applied, missed, rejected}：旧 db 主键落空 → missed（须提示刷新）；
+    范围非法/越界/与未忽略区块重叠 → rejected 携带原因（其余修改不受影响）。"""
+    from .rules import get_rules
+    rules = rules or get_rules()
     con = _init(db)
     applied = missed = 0
+    geom = []
     for e in edits or []:
         sets, vals = [], []
         if "user_type" in e:
@@ -477,12 +622,27 @@ def freeze(workbook_id: int, db: str = DEFAULT_DB, edits: list | None = None):
                 applied += 1
             else:
                 missed += 1
+        if e.get("user_bbox"):
+            geom.append({"block_db_id": e["block_db_id"], "user_bbox": e["user_bbox"]})
+    rejected = []
+    if geom:
+        if wb is None:
+            p = con.execute("SELECT path FROM workbooks WHERE id=?",
+                            (workbook_id,)).fetchone()
+            if not p:
+                con.close()
+                raise SystemExit("freeze: 工作簿不存在")
+            from .extract import extract_workbook
+            wb = extract_workbook(p[0])
+        g_applied, rejected = _apply_geometry(con, workbook_id, wb, rules, geom)
+        applied += g_applied
+        missed += sum(1 for r in rejected if "不存在" in r["reason"])
     # 重新冻结 = 变更已复核完毕：清掉接管横幅，问答/写入闸门恢复
     con.execute("UPDATE workbooks SET status='frozen', frozen_at=?, change_json=NULL "
                 "WHERE id=?", (_now(), workbook_id))
     con.commit()
     con.close()
-    return {"applied": applied, "missed": missed}
+    return {"applied": applied, "missed": missed, "rejected": rejected}
 
 
 def add_glossary(workbook_id: int, term: str, meaning: str, db: str = DEFAULT_DB,

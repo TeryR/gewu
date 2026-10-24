@@ -127,7 +127,8 @@ API_DOCS = {
         },
         "POST /api/freeze": {
             "desc": "冻结语义镜像（打开改数总闸门）",
-            "body": {"edits": [{"block_db_id": "int", "user_type": "str", "readonly": "int"}]},
+            "body": {"edits": [{"block_db_id": "int", "user_type": "str", "readonly": "int",
+                                "user_bbox": "[r1,c1,r2,c2] 人工修正区块范围（表头/记录在新范围重建）"}]},
             "returns": {"ok": "bool", "applied": "int", "missed": "int"}
         },
         "POST /api/ask": {
@@ -256,9 +257,11 @@ def sheet_state(sheet_name):
     s = next(x for x in wb["sheets"] if x["name"] == sheet_name)
     seg = segment_sheet(s)
     con = sqlite3.connect(STATE["db"])
-    db_ids = {(sname, bid): sid for sid, sname, bid in
-              con.execute("SELECT id, sheet_name, block_id FROM blocks WHERE workbook_id=?",
-                          (STATE["wid"],))}
+    con.row_factory = sqlite3.Row
+    marks = {r["block_id"]: r for r in con.execute(
+        "SELECT block_id, id, user_type, readonly, user_bbox, header_json "
+        "FROM blocks WHERE workbook_id=? AND sheet_name=?",
+        (STATE["wid"], sheet_name))}
     # 行内备注挂接（note 引擎id → {表引擎id, 行, 文本}）——侧栏展示与解除入口用
     attaches = {nb: {"table_block_id": tb, "row_no": r, "text": t} for nb, tb, r, t in
                 con.execute("SELECT note_block_id, table_block_id, row_no, text "
@@ -269,11 +272,28 @@ def sheet_state(sheet_name):
     for b in seg["blocks"]:
         if b["type"] == "table":
             b["header"] = build_header_tree(s, b)
-        blocks.append({k: b.get(k) for k in
-                       ("id", "bbox", "type", "type_label", "score", "signals",
-                        "annotation", "summary_tail", "header")}
-                      | {"db_id": db_ids.get((sheet_name, b["id"])),
-                         "attach": attaches.get(b["id"])})
+        mk = marks.get(b["id"])
+        blk = {k: b.get(k) for k in
+               ("id", "bbox", "type", "type_label", "score", "signals",
+                "annotation", "summary_tail", "header")}
+        if mk:
+            # 人工标记回填展示：冻结后刷新页面，颜色/范围/表头树仍显示人工结论
+            # （此前只回填 db_id，刷新后类型显示会回退引擎判定）
+            blk["db_id"] = mk["id"]
+            blk["readonly"] = bool(mk["readonly"])
+            if mk["user_type"]:
+                blk["engine_type"] = b["type"]
+                blk["type"] = mk["user_type"]
+            if mk["user_bbox"]:
+                blk["engine_bbox"] = b["bbox"]
+                blk["bbox"] = json.loads(mk["user_bbox"])
+                if mk["user_type"] != "note" and mk["header_json"]:
+                    blk["header"] = json.loads(mk["header_json"])
+        else:
+            blk["db_id"] = None
+            blk["readonly"] = False
+        blk["attach"] = attaches.get(b["id"])
+        blocks.append(blk)
     if blocks:
         r1 = max(1, min(b["bbox"][0] for b in blocks) - 2)
         r2 = min(MAX_R, max(b["bbox"][2] for b in blocks) + 2)
@@ -541,11 +561,17 @@ class Handler(BaseHTTPRequestHandler):
                 return
         if u.path == "/api/freeze":
             if self._busy(): return
-            result = freeze(STATE["wid"], STATE["db"], edits=payload.get("edits", []))
+            result = freeze(STATE["wid"], STATE["db"], edits=payload.get("edits", []),
+                            wb=_get_wb(STATE["wb_path"]))
             result["ok"] = True
+            parts = []
             if result["missed"]:
-                result["warning"] = (f"{result['missed']} 条修改未命中区块"
-                                     f"（镜像已重建，请刷新页面后重试）")
+                parts.append(f"{result['missed']} 条修改未命中区块（镜像已重建，请刷新页面后重试）")
+            parts += [r["reason"] for r in result.get("rejected") or []]
+            if parts:
+                result["warning"] = "；".join(parts)[:300]
+            if any(e.get("user_bbox") for e in payload.get("edits", [])):
+                _SHEET_CACHE.clear()   # 生效范围变了，渲染/蒙版/缓存全部失效
             self._json(result)
         elif u.path == "/api/ask":
             if self._busy(): return

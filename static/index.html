@@ -74,6 +74,7 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
     <tr><td style="padding:4px 8px;border:1px solid #e2e8f0">切为 🟥混合待复核</td><td style="padding:4px 8px;border:1px solid #e2e8f0">隔离：禁改数、不进问答，直到定型成数据表或文本</td></tr>
     <tr><td style="padding:4px 8px;border:1px solid #e2e8f0">🔒只读</td><td style="padding:4px 8px;border:1px solid #e2e8f0"><b>仅本应用内只读</b>：工具禁止改这块（可正常问答）。<b>文件本身不变</b>——Excel/WPS 里仍可编辑，文件属性也不变</td></tr>
     <tr><td style="padding:4px 8px;border:1px solid #e2e8f0">🔓可写</td><td style="padding:4px 8px;border:1px solid #e2e8f0">解除上面的应用内只读</td></tr>
+    <tr><td style="padding:4px 8px;border:1px solid #e2e8f0">📐调整范围</td><td style="padding:4px 8px;border:1px solid #e2e8f0">框盖小了/劈开了/圈多了 → 选中块后直接拖蓝框的边/角（或点「📐 调整范围」后拖橙框/填数字/点两下）；表头树和记录会在新范围内<b>由机器自动重新识别</b>，随冻结生效。与其他未忽略区块重叠会被拦截（先把重叠块设为忽略）</td></tr>
   </table>
   <div style="padding-left:10px;color:#475569;font-size:12.5px">
     误触保护：修改点冻结才生效（顶部有"待提交 N 处"提示）；冻结前刷新页面 = 全部撤销；每块可 <b>↩ 撤销本块修改</b>；冻结后切错了，再切一次并重新冻结即可。<br>
@@ -103,8 +104,25 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
   <b>怎么用：</b><b>蓝框=表格</b>（问答和改数都发生在蓝框里，只需扫一眼框得对不对）；
   <b>黄虚线=标题/备注</b>（不当表格处理，<u>不用管它</u>；标了「表内批注」的是表格中间夹的一行备注，正常现象）；
   <b>红框=机器拿不准</b>（最好点开看一眼）。
-  没问题 → 点右上「检查无误，冻结」→ 去底部工作台。框不对 → 点色块改类型。
+  没问题 → 点右上「检查无误，冻结」→ 去底部工作台。框不对 → 点色块改类型；范围不对 → 选中后直接拖蓝框的边/角调整，表头和列名会在新范围里自动重新识别。
   <button onclick="this.parentNode.remove()" style="margin-left:auto">知道了 ✕</button>
+</div>
+<div id="adjustBox" style="display:none;position:fixed;right:16px;top:64px;z-index:40;background:#fff;
+  border:1px solid #cbd5e1;border-radius:10px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.18);
+  font-size:12.5px;max-width:290px">
+  <b id="adjTitle" style="font-size:13px"></b>
+  <div class="hint" data-i18n="adj_hint" style="margin:6px 0;line-height:1.6"></div>
+  <div style="display:flex;gap:4px;align-items:center;margin:4px 0;flex-wrap:wrap">
+    <span data-i18n="adj_r1" class="hint"></span><input id="ar1" type="number" min="1" style="width:56px" oninput="adjInput()">
+    <span data-i18n="adj_c1" class="hint"></span><input id="ac1" type="number" min="1" style="width:56px" oninput="adjInput()">
+    <span class="hint" style="flex:100%">→</span>
+    <span data-i18n="adj_r2" class="hint"></span><input id="ar2" type="number" min="1" style="width:56px" oninput="adjInput()">
+    <span data-i18n="adj_c2" class="hint"></span><input id="ac2" type="number" min="1" style="width:56px" oninput="adjInput()">
+  </div>
+  <div style="display:flex;gap:6px;margin-top:8px">
+    <button class="primary" style="font-size:12px;padding:3px 12px" onclick="confirmAdjust()" data-i18n="adj_ok2"></button>
+    <button style="font-size:12px;padding:3px 12px" onclick="closeAdjust()" data-i18n="adj_cancel"></button>
+  </div>
 </div>
 <div id="llmBox" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50" onclick="if(event.target===this)this.style.display='none'">
  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;max-width:560px;width:92%;max-height:86vh;overflow:auto;padding:22px 26px;font-size:13px;line-height:1.7;box-shadow:0 10px 40px rgba(0,0,0,.25)">

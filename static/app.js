@@ -87,13 +87,13 @@ function drawOverlays(){
     if(typeOf(a)!=='table')return;
     S.blocks.forEach(b=>{
       if(a===b||typeOf(b)!=='note')return;
-      const [ar1,ac1,ar2,ac2]=a.bbox,[br1,bc1,br2,bc2]=b.bbox;
+      const [ar1,ac1,ar2,ac2]=bboxOf(a),[br1,bc1,br2,bc2]=bboxOf(b);
       if(br1>=ar1&&br2<=ar2&&bc1>=ac1&&bc2<=ac2)insideOf[b.id]=a.id;
     });
   });
   const wrap=document.getElementById('gridWrap'), wr=wrap.getBoundingClientRect();
   S.blocks.forEach(b=>{
-    const t=typeOf(b), a=anchor(b.bbox), [r1,c1,r2,c2]=b.bbox;
+    const t=typeOf(b), a=anchor(bboxOf(b)), [r1,c1,r2,c2]=bboxOf(b);
     if(!a)return;
     const d=document.createElement('div');d.className='blk'+(sel===b.id?' sel':'');
     d.dataset.color=COLORS[t];
@@ -107,9 +107,25 @@ function drawOverlays(){
     d.innerHTML=`<span class="tag" style="color:${COLORS[t]}">${LABELS[t]} #${b.id} ${b.score??''}${nested?' · 表内批注':''}</span>`;
     d.onmouseenter=()=>{d.dataset.boost='hover';paintAll()};
     d.onmouseleave=()=>{d.dataset.boost='';paintAll()};
-    d.onclick=()=>{sel=b.id;showDetail(b);drawOverlays()};
+    d.onclick=()=>{if(adj)return;sel=b.id;showDetail(b);drawOverlays()};
+    if(sel===b.id&&!adj)_adjHandles(d,b.id);   // 选中即出把手：直接拖边/角调整
     ov.appendChild(d);
   });
+  if(adj){                       // 调整范围模式的橙色虚线预览（带把手可直接拖）
+    const e1=anchorCell(adj.vals[0],adj.vals[1]), e2=anchorCell(adj.vals[2],adj.vals[3]);
+    if(e1&&e2){
+      const p=e1.getBoundingClientRect(), q=e2.getBoundingClientRect();
+      const d=document.createElement('div');
+      d.id='adjPrev';
+      d.style.cssText=`position:absolute;left:${p.left-wr.left}px;top:${p.top-wr.top}px;
+        width:${q.right-p.left}px;height:${q.bottom-p.top}px;border:2px dashed #ea580c;
+        border-radius:4px;pointer-events:none;z-index:6`;
+      d.innerHTML=`<span style="position:absolute;left:4px;top:-20px;font-size:11px;
+        color:#ea580c;font-weight:700;white-space:nowrap">${t('adj_prev')}</span>`;
+      _adjHandles(d,null);
+      ov.appendChild(d);
+    }
+  }
   paintAll();
 }
 function typeOf(b){return (edits[b.id]&&edits[b.id].user_type)||b.type}
@@ -132,6 +148,132 @@ function anchorCell(r,c){
 function showHelp(){document.getElementById('helpBox').style.display=''}
 const EMAIL="";
 
+
+/* ===== 框微调：点两角选范围（Esc 取消）===== */
+let adj=null;
+document.addEventListener('keydown',e=>{if(adj&&e.key==='Escape')closeAdjust()});
+document.getElementById('gridWrap').addEventListener('click',e=>{
+  if(!adj)return;
+  const td=e.target.closest('td[data-r]');
+  if(td)adjCellClick(td);
+});
+function bboxOf(b){return (edits[b.id]&&edits[b.id].user_bbox)||b.bbox}
+function startAdjust(id){
+  const b=S.blocks.find(x=>x.id===id);if(!b)return;
+  if(adj&&adj.id===id)return;              // 同块已在调整中：不重置当前值
+  const [r1,c1,r2,c2]=bboxOf(b);
+  adj={id,vals:[r1,c1,r2,c2],clicks:0};
+  showAdjustBox();drawOverlays();
+}
+function showAdjustBox(){
+  document.getElementById('adjustBox').style.display='';
+  ['ar1','ac1','ar2','ac2'].forEach((k,i)=>document.getElementById(k).value=adj.vals[i]);
+  document.getElementById('adjTitle').textContent=t('adj_title')+' #'+adj.id;
+}
+function adjInput(){
+  adj.vals=['ar1','ac1','ar2','ac2'].map(k=>parseInt(document.getElementById(k).value)||0);
+  drawOverlays();
+}
+function adjCellClick(td){        // 第1点=一角，第2点=对角（自动归位大小）
+  const r=+td.dataset.r,c=+td.dataset.c;
+  if(adj.clicks===0){adj.vals=[r,c,r,c];adj.clicks=1}
+  else{adj.vals=[Math.min(adj.vals[0],r),Math.min(adj.vals[1],c),
+                 Math.max(adj.vals[2],r),Math.max(adj.vals[3],c)];adj.clicks=0}
+  showAdjustBox();drawOverlays();
+}
+/* 拖拽调整：选中块的蓝框带 8 把手；调整模式的橙虚线带把手+移动钮 */
+function _adjHandles(host, blockId){
+  const P={nw:'left:-5px;top:-5px',n:'left:50%;top:-5px;transform:translateX(-50%)',
+    ne:'right:-5px;top:-5px',e:'right:-5px;top:50%;transform:translateY(-50%)',
+    se:'right:-5px;bottom:-5px',s:'left:50%;bottom:-5px;transform:translateX(-50%)',
+    sw:'left:-5px;bottom:-5px',w:'left:-5px;top:50%;transform:translateY(-50%)'};
+  [['nw','nwse-resize'],['n','ns-resize'],['ne','nesw-resize'],['e','ew-resize'],
+   ['se','nwse-resize'],['s','ns-resize'],['sw','nesw-resize'],['w','ew-resize']]
+  .forEach(([h,cur])=>{
+    const hd=document.createElement('div');
+    hd.style.cssText=`position:absolute;${P[h]};width:11px;height:11px;background:#fff;
+      border:2px solid ${blockId?'#2563eb':'#ea580c'};border-radius:3px;cursor:${cur};z-index:7;
+      pointer-events:auto`;
+    hd.onmousedown=e=>adjHandleDown(e,blockId,h);
+    host.appendChild(hd);
+  });
+  if(!blockId){                        // 调整模式：整框平移把手
+    const mv=document.createElement('div');
+    mv.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);'+
+      'padding:2px 10px;background:#ea580c;color:#fff;border-radius:10px;font-size:10px;'+
+      'cursor:move;z-index:7;white-space:nowrap;pointer-events:auto';
+    mv.textContent=t('adj_move');
+    mv.onmousedown=e=>adjHandleDown(e,null,'move');
+    host.appendChild(mv);
+  }
+}
+function adjHandleDown(e,blockId,h){
+  e.stopPropagation();e.preventDefault();
+  if(!adj){
+    if(!blockId)return;
+    startAdjust(blockId);
+  }
+  if(!adj)return;
+  adj.drag={h,vals:[...adj.vals],startCell:cellAt(e)};
+  document.addEventListener('mousemove',adjDragMove);
+  document.addEventListener('mouseup',adjDragUp);
+}
+function cellAt(e){
+  const el=document.elementFromPoint(e.clientX,e.clientY);
+  const td=el&&el.closest?el.closest('td[data-r]'):null;
+  return td?{r:+td.dataset.r,c:+td.dataset.c}:null;
+}
+function adjDragMove(e){
+  if(!adj||!adj.drag)return;
+  const cell=cellAt(e);if(!cell)return;
+  const {h,vals:d,startCell}=adj.drag;
+  let v;
+  if(h==='move'){
+    const dr=cell.r-startCell.r,dc=cell.c-startCell.c;
+    v=[d[0]+dr,d[1]+dc,d[2]+dr,d[3]+dc];
+  }else{
+    v=[...d];
+    if(h.indexOf('n')>=0)v[0]=cell.r;
+    if(h.indexOf('s')>=0)v[2]=cell.r;
+    if(h.indexOf('w')>=0)v[1]=cell.c;
+    if(h.indexOf('e')>=0)v[3]=cell.c;
+  }
+  adj.vals=v.map(x=>Math.max(1,Math.round(x)));
+  syncAdjustUI();
+}
+function adjDragUp(){
+  document.removeEventListener('mousemove',adjDragMove);
+  document.removeEventListener('mouseup',adjDragUp);
+  if(adj){
+    if(adj.vals[0]>adj.vals[2])[adj.vals[0],adj.vals[2]]=[adj.vals[2],adj.vals[0]];
+    if(adj.vals[1]>adj.vals[3])[adj.vals[1],adj.vals[3]]=[adj.vals[3],adj.vals[1]];
+    adj.drag=null;drawOverlays();
+  }
+}
+function syncAdjustUI(){          // 拖动中轻量同步：输入框 + 预览框几何（不整页重绘）
+  ['ar1','ac1','ar2','ac2'].forEach((k,i)=>document.getElementById(k).value=adj.vals[i]);
+  const pv=document.getElementById('adjPrev');
+  if(pv){
+    const e1=anchorCell(adj.vals[0],adj.vals[1]), e2=anchorCell(adj.vals[2],adj.vals[3]);
+    if(e1&&e2){
+      const wr=document.getElementById('gridWrap').getBoundingClientRect();
+      const p=e1.getBoundingClientRect(), q=e2.getBoundingClientRect();
+      pv.style.left=(p.left-wr.left)+'px';pv.style.top=(p.top-wr.top)+'px';
+      pv.style.width=(q.right-p.left)+'px';pv.style.height=(q.bottom-p.top)+'px';
+    }
+  }
+}
+function confirmAdjust(){
+  const [r1,c1,r2,c2]=adj.vals;
+  if(!(r1>=1&&c1>=1&&r2>=r1&&c2>=c1)){alert(t('adj_bad'));return}
+  const id=adj.id;closeAdjust();
+  setEdit(id,'user_bbox',[r1,c1,r2,c2]);
+}
+function closeAdjust(){
+  adj=null;
+  document.getElementById('adjustBox').style.display='none';
+  drawOverlays();
+}
 
 /* 网页内拖入 xlsx → 上传副本打开（桌面壳里由 Rust 拦截为"打开原文件"，此 handler 不触发） */
 window.addEventListener('dragover',e=>{e.preventDefault()});
@@ -264,11 +406,12 @@ function showAbout(){
   document.getElementById('aboutBox').style.display='';
 }
 function showDetail(b){
-  const t=typeOf(b), d=document.getElementById('detail');
+  const ty=typeOf(b), d=document.getElementById('detail');
   const h=b.header||{};
   let rows=`
-   <b>${t('d_type')}</b><span>${LABELS[t]}</span>
+   <b>${t('d_type')}</b><span>${LABELS[ty]}</span>
    <b>${t('d_pos')}</b><span>r${b.bbox[0]}-r${b.bbox[2]} × c${b.bbox[1]}-c${b.bbox[3]}</span>
+   ${b.engine_bbox?`<b>${t('d_orig')}</b><span class="hint">r${b.engine_bbox[0]}-r${b.engine_bbox[2]} × c${b.engine_bbox[1]}-c${b.engine_bbox[3]}</span>`:''}
    <b>${t('d_score')}</b><span>${b.score}</span>`;
   if(h.header_rows)rows+=`<b>${t('d_hdr')}</b><span>r${h.header_rows.join(',r')}</span>`;
   if(h.title_text)rows+=`<b>${t('d_title')}</b><span>${esc(h.title_text)}</span>`;
@@ -284,21 +427,23 @@ function showDetail(b){
       <span class="hint">${esc((b.attach.text||'').slice(0,80))}</span><br>
       <button onclick="doDetach(${b.id})">取消挂接（不算这行的信息）</button></span>`;
   }
-  const switchTitle=(t==='note')
+  const switchTitle=(ty==='note')
     ?'该块引擎判定为文本（无列结构）：切为数据表仅作视觉标记，不会进入问答'
     :'把这块按另一种类型对待；点冻结才生效，可反复切换';
   rows+=`<b>操作</b><span>
-    <button onclick="setEdit(${b.id},'user_type','${nextType(t)}')" title="${switchTitle}">切为${LABELS[nextType(t)]}</button>
+    <button onclick="setEdit(${b.id},'user_type','${nextType(ty)}')" title="${switchTitle}">切为${LABELS[nextType(ty)]}</button>
     <button onclick="setEdit(${b.id},'readonly',1)" title="应用内只读：本工具禁止改这块的数（问答不受影响）；文件本身不变，Excel/WPS 里仍可编辑">🔒只读</button>
-    <button onclick="setEdit(${b.id},'readonly',0)" title="解除只读">🔓可写</button></span>`;
+    <button onclick="setEdit(${b.id},'readonly',0)" title="解除只读">🔓可写</button>
+    <button onclick="startAdjust(${b.id})" title="${t('adj_btn_t')}">${t('adj_btn')}</button></span>`;
   if(edits[b.id]){
     const e=edits[b.id];const parts=[];
     if(e.user_type)parts.push('切为'+LABELS[e.user_type]);
+    if(e.user_bbox)parts.push(t('adj_pending')+` r${e.user_bbox[0]}-r${e.user_bbox[2]} × c${e.user_bbox[1]}-c${e.user_bbox[3]}`);
     if(e.readonly!==undefined)parts.push(e.readonly?'设为只读🔒':'设为可写🔓');
     rows+=`<b>已改(未冻结)</b><span>${parts.join('，')} <button onclick="revertEdit(${b.id})" title="撤销这块的全部未冻结修改">↩ 撤销本块修改</button></span>`;
   }
   d.innerHTML=rows;
-  if(t==='table'){renderGlossary(b);renderRules()}
+  if(ty==='table'){renderGlossary(b);renderRules()}
 }
 
 async function renderRules(){
@@ -364,7 +509,7 @@ async function saveGlossary(col,bid,idx){
 function nextType(t){return {table:'note',note:'mixed',mixed:'ignore',ignore:'table'}[t]}
 function setEdit(id,k,v){
   edits[id]=edits[id]||{};
-  if(!edits[id]._orig){const b0=S.blocks.find(x=>x.id===id);edits[id]._orig={type:b0?b0.type:'table'}}
+  if(!edits[id]._orig){const b0=S.blocks.find(x=>x.id===id);edits[id]._orig={type:b0?b0.type:'table',bbox:b0?b0.bbox:null}}
   edits[id][k]=v;
   if(k==='user_type'){const b=S.blocks.find(x=>x.id===id);if(b){b.type=v}}
   drawOverlays();updatePending();
@@ -373,7 +518,7 @@ function setEdit(id,k,v){
 function revertEdit(id){          // 误触保护：撤销本块全部未冻结修改
   const e=edits[id];if(!e)return;
   const b=S.blocks.find(x=>x.id===id);
-  if(b&&e._orig)b.type=e._orig.type;
+  if(b&&e._orig){b.type=e._orig.type;if(e._orig.bbox)b.bbox=e._orig.bbox}
   delete edits[id];
   drawOverlays();updatePending();
   if(b)showDetail(b);
@@ -387,12 +532,18 @@ function updatePending(){
 }
 async function doFreeze(){
   const list=[];
-  S.blocks.forEach(b=>{if(edits[b.id]&&b.db_id)
-    list.push({block_db_id:b.db_id,...edits[b.id]})});
+  S.blocks.forEach(b=>{if(edits[b.id]&&b.db_id){
+    const {_orig,...rest}=edits[b.id];
+    list.push({block_db_id:b.db_id,...rest})}});
   const r=await (await fetch('/api/freeze',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({edits:list,sheet:S.sheet})})).json();
-  if(r.ok){edits={};updatePending();}
-  alert(r.ok?t('frozen_ok'):t('frozen_fail'));refreshStatus();
+  if(r.ok){
+    edits={};updatePending();
+    if(r.rejected&&r.rejected.length)
+      alert(t('frozen_part')+'\n\n'+r.rejected.map(x=>'· '+x.reason).join('\n'));
+    else alert(t('frozen_ok'));
+    await loadState(S.sheet);refreshStatus();   // 几何/标记变了：重载确认页视图
+  }else alert(t('frozen_fail')+(r.warning?'\n'+r.warning:''));
 }
 async function doDetach(blockId){
   const r=await (await fetch('/api/note_detach',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -542,7 +693,13 @@ const I18N={
   llm_saved:"已保存（新对话生效）", llm_none:"（未配置：问答走内置规则引擎）",
   tray_label:"关闭窗口时缩到系统托盘（引擎保持运行，重开秒进；取消勾选=直接退出）",
   tray_note:"仅桌面应用生效，改后重启应用即可。", copy_badge:"副本",
-  guide:'<b>怎么用：</b><b>蓝框=表格</b>（问答和改数都发生在蓝框里，只需扫一眼框得对不对）；<b>黄虚线=标题/备注</b>（不当表格处理，<u>不用管它</u>；标了「表内批注」的是表格中间夹的一行备注，正常现象）；<b>红框=机器拿不准</b>（最好点开看一眼）。没问题 → 点右上「检查无误，冻结」→ 右侧面板开始问答与改数。框不对 → 点色块改类型。<button onclick="this.parentNode.remove()" style="margin-left:auto">知道了 ✕</button>'
+  guide:'<b>怎么用：</b><b>蓝框=表格</b>（问答和改数都发生在蓝框里，只需扫一眼框得对不对）；<b>黄虚线=标题/备注</b>（不当表格处理，<u>不用管它</u>；标了「表内批注」的是表格中间夹的一行备注，正常现象）；<b>红框=机器拿不准</b>（最好点开看一眼）。没问题 → 点右上「检查无误，冻结」→ 右侧面板开始问答与改数。框不对 → 点色块改类型；范围不对 → 选中后直接拖蓝框边角调整。<button onclick="this.parentNode.remove()" style="margin-left:auto">知道了 ✕</button>',
+  adj_title:'调整范围（区块',adj_hint:'直接拖橙框的边/角/中心钮，或在表格上点两下选范围，或改数字。确定后随「冻结」生效，表头和列名会在新范围里自动重新识别。',
+  adj_move:'⇔ 拖动整框',adj_r1:'行起',adj_c1:'列起',adj_r2:'行止',adj_c2:'列止',
+  adj_ok2:'确定调整',adj_cancel:'取消',adj_prev:'新范围预览',
+  adj_bad:'范围不合法：行止≥行起、列止≥列起，且都≥1',
+  adj_btn:'📐 调整范围',adj_btn_t:'框盖小了/劈开了/圈多了？自己重画这块的范围；表头树和记录会在新范围里由机器重新识别，点冻结生效。与其他未忽略区块重叠会拦下',
+  adj_pending:'范围调整为',d_orig:'引擎原范围',frozen_part:'部分修改未生效（其余已冻结）：'
  },
  "en":{
   brand_tag:"Intelligence workbench for complex spreadsheets", mask:"Mask", opacity:"Opacity",
@@ -605,9 +762,9 @@ const I18N={
   <div style="margin:14px 0 4px;font-weight:700;color:#1d4ed8">2. How to ask</div>
   <div style="padding-left:10px">"This table / current table" refers to the sheet you are viewing; "the whole file / how do these tables relate" asks about the whole workbook.<br>Follow-ups (e.g. "then why is it computed that way") automatically carry the last 4 turns; click <b>🗑 New chat</b> to start over.</div>
   <div style="margin:14px 0 4px;font-weight:700;color:#1d4ed8">3. How to edit cells</div>
-  <div style="padding-left:10px">Edits <b>do not follow the chat scope</b> — they locate semantically across the whole workbook by sheet keyword + row keys + column name, so include the sheet name ("add 3 to the 250 weight of <b>Chenhong-Korea summary</b>"). Multiple hits are blocked until clarified.<br>Flow: semantic parse → hard validation → <b>diff preview (old → new)</b> → your confirmation → write (auto-backup, undoable). In uploaded-copy mode edits go to the copy only — download the finished file via “📥 Export edited file” in the header.</div>
+  <div style="padding-left:10px">Edits <b>do not follow the chat scope</b> — they locate semantically across the whole workbook by sheet keyword + row keys + column name, so include the sheet name ("add 3000 to the January travel budget of <b>Sales</b>"). Multiple hits are blocked until clarified.<br>Flow: semantic parse → hard validation → <b>diff preview (old → new)</b> → your confirmation → write (auto-backup, undoable). In uploaded-copy mode edits go to the copy only — download the finished file via “📥 Export edited file” in the header.</div>
   <div style="margin:14px 0 4px;font-weight:700;color:#1d4ed8">4. Block buttons (effective after freeze)</div>
-  <table style="width:100%;border-collapse:collapse;font-size:13px;margin:4px 0"><tr style="background:#f1f5f9"><th style="text-align:left;padding:4px 8px;border:1px solid #e2e8f0">Button</th><th style="text-align:left;padding:4px 8px;border:1px solid #e2e8f0">Effect</th></tr><tr><td style="padding:4px 8px;border:1px solid #e2e8f0">→ 🟨 Text/note</td><td style="padding:4px 8px;border:1px solid #e2e8f0">The block leaves Q&amp;A and editing (data stays in the file; just not treated as a table)</td></tr><tr><td style="padding:4px 8px;border:1px solid #e2e8f0">→ ⬜ Ignore</td><td style="padding:4px 8px;border:1px solid #e2e8f0">Same as above: out of Q&amp;A + edits rejected</td></tr><tr><td style="padding:4px 8px;border:1px solid #e2e8f0">→ 🟥 Mixed review</td><td style="padding:4px 8px;border:1px solid #e2e8f0">Isolated: no edits, no Q&amp;A, until re-typed as table or text</td></tr><tr><td style="padding:4px 8px;border:1px solid #e2e8f0">🔒 Read-only</td><td style="padding:4px 8px;border:1px solid #e2e8f0"><b>In-app only</b>: this tool refuses to edit the block (Q&amp;A unaffected). <b>The file itself is untouched</b> — still editable in Excel/WPS, file attributes unchanged</td></tr><tr><td style="padding:4px 8px;border:1px solid #e2e8f0">🔓 Writable</td><td style="padding:4px 8px;border:1px solid #e2e8f0">Clears the in-app read-only mark</td></tr></table>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin:4px 0"><tr style="background:#f1f5f9"><th style="text-align:left;padding:4px 8px;border:1px solid #e2e8f0">Button</th><th style="text-align:left;padding:4px 8px;border:1px solid #e2e8f0">Effect</th></tr><tr><td style="padding:4px 8px;border:1px solid #e2e8f0">→ 🟨 Text/note</td><td style="padding:4px 8px;border:1px solid #e2e8f0">The block leaves Q&amp;A and editing (data stays in the file; just not treated as a table)</td></tr><tr><td style="padding:4px 8px;border:1px solid #e2e8f0">→ ⬜ Ignore</td><td style="padding:4px 8px;border:1px solid #e2e8f0">Same as above: out of Q&amp;A + edits rejected</td></tr><tr><td style="padding:4px 8px;border:1px solid #e2e8f0">→ 🟥 Mixed review</td><td style="padding:4px 8px;border:1px solid #e2e8f0">Isolated: no edits, no Q&amp;A, until re-typed as table or text</td></tr><tr><td style="padding:4px 8px;border:1px solid #e2e8f0">🔒 Read-only</td><td style="padding:4px 8px;border:1px solid #e2e8f0"><b>In-app only</b>: this tool refuses to edit the block (Q&amp;A unaffected). <b>The file itself is untouched</b> — still editable in Excel/WPS, file attributes unchanged</td></tr><tr><td style="padding:4px 8px;border:1px solid #e2e8f0">🔓 Writable</td><td style="padding:4px 8px;border:1px solid #e2e8f0">Clears the in-app read-only mark</td></tr><tr><td style="padding:4px 8px;border:1px solid #e2e8f0">📐 Adjust range</td><td style="padding:4px 8px;border:1px solid #e2e8f0">Select a block and drag its frame edges/corners directly (panel offers orange-frame drag / numbers / two clicks); headers and records are <b>re-detected automatically</b> inside the new range, applied on freeze. Overlaps with a non-ignored block are rejected (set that block to Ignore first)</td></tr></table>
   <div style="padding-left:10px;color:#475569;font-size:12.5px">Accidental clicks: edits apply only on freeze (a "pending N" chip shows at the top); refreshing before freeze discards everything; each block has "↩ revert"; if you froze something wrong, switch it again and re-freeze.<br>Note: switching an engine-detected text block to "table" is a visual mark only (no column structure, never enters Q&amp;A).</div>
   <div style="margin:14px 0 4px;font-weight:700;color:#1d4ed8">5. After the file changes</div>
   <div style="padding-left:10px">Edits made by this tool → reopening continues seamlessly (freeze kept).<br>Someone changed values → re-drop the file: green bar "values refreshed", freeze still valid, no re-confirmation.<br>Structure changed (tables added/removed, headers edited) → re-drop: orange bar lists the changes; marks on unchanged blocks are kept automatically; review then re-freeze.</div>
@@ -620,7 +777,13 @@ const I18N={
   </div>
   <div style="margin-top:14px;padding:8px 10px;background:#f8fafc;border-left:3px solid #94a3b8;color:#64748b;font-size:12.5px">
     Every edit is re-validated before writing; headers, summary rows, formula cells and ignored blocks are never written. All manual marks (types/read-only/glossary/row notes) live only in this tool's mirror and <b>never modify your file</b> (except explicit edit commands).</div>`,
-   guide:'<b>How to use:</b> <b>Blue = table</b> (Q&A and edits happen inside blue frames — just glance they are right); <b>dashed yellow = title/notes</b> (not treated as a table; blocks tagged “in-table note” are remark rows inside a table — normal); <b>red = machine unsure</b> (worth a look). All good → click “Freeze” top-right → start in the right panel. Wrong frame → click the block and switch its type. <button onclick="this.parentNode.remove()" style="margin-left:auto">Got it ✕</button>'
+   guide:'<b>How to use:</b> <b>Blue = table</b> (Q&A and edits happen inside blue frames — just glance they are right); <b>dashed yellow = title/notes</b> (not treated as a table; blocks tagged “in-table note” are remark rows inside a table — normal); <b>red = machine unsure</b> (worth a look). All good → click “Freeze” top-right → start in the right panel. Wrong frame → click the block and switch its type; wrong range → select it and drag the frame\u2019s edges/corners. <button onclick="this.parentNode.remove()" style="margin-left:auto">Got it ✕</button>',
+   adj_title:'Adjust range (block',adj_hint:'Drag the orange frame by its edges, corners, or the center grip; or click two corners on the grid; or edit the numbers. Applies on Freeze, with headers and columns re-detected inside the new range.',
+   adj_move:'⇔ Move frame',adj_r1:'Row from',adj_c1:'Col from',adj_r2:'Row to',adj_c2:'Col to',
+   adj_ok2:'Apply',adj_cancel:'Cancel',adj_prev:'New range preview',
+   adj_bad:'Invalid range: row-to ≥ row-from, col-to ≥ col-from, all ≥ 1',
+   adj_btn:'📐 Adjust range',adj_btn_t:'Frame too small, split, or too wide? Redraw it; the header tree and records are re-detected inside the new range. Applies on Freeze. Overlaps with another non-ignored block are rejected.',
+   adj_pending:'Range set to',d_orig:'Engine range',frozen_part:'Some edits were rejected (the rest is frozen):'
  }
 };
 let LANG=localStorage.getItem('gewu-lang')||'zh';

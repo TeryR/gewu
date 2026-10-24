@@ -141,6 +141,16 @@ def static_suite(html):
     check("遮罩轮询 /api/boot", "/api/boot" in html)
     check("busy 门控函数", "def _busy" in FULL_SRC)
 
+    print("\n── A7. 框微调（调整范围）──")
+    check("bboxOf 生效范围函数", "function bboxOf" in FULL_SRC)
+    check("startAdjust 入口", "function startAdjust" in FULL_SRC)
+    check("adjustBox 面板", 'id="adjustBox"' in html)
+    check("点两角选择", "adjCellClick" in FULL_SRC)
+    check("拖拽把手", "adjHandleDown" in FULL_SRC and "_adjHandles" in FULL_SRC)
+    check("拖中轻量同步", "syncAdjustUI" in FULL_SRC)
+    check("i18n adj_hint 双语", FULL_SRC.count("adj_hint:") == 2)
+    check("帮助面板有调整范围行", "📐调整范围" in html)
+
 
 # ==================== B. API 集成层（动态层地面部队） ====================
 def api_suite():
@@ -175,6 +185,26 @@ def api_suite():
     fetch("/api/open", {"path": SAMPLE}, "POST")
     sheets1 = fetch("/api/sheets")
     check("切回第一文件", any(s["name"] == "销售部" for s in sheets1))
+
+    print("\n── B4b. 框微调（user_bbox 冻结 → state 反映 → 非法拒绝） ──")
+    import urllib.parse as _up
+    fetch("/api/open", {"path": SAMPLE2}, "POST")
+    sh2 = fetch("/api/sheets")[0]["name"]
+    st2 = fetch("/api/state?sheet=" + _up.quote(sh2))
+    blk = next(b for b in st2["blocks"] if b.get("db_id") and b["type"] == "table")
+    orig = blk.get("engine_bbox") or blk["bbox"]      # 引擎原框（重复跑时已带人工范围）
+    r1, c1, r2, c2 = blk["bbox"]
+    nb = [r1, c1, max(r1 + 1, r2 - 3), c2]
+    r = fetch("/api/freeze", {"edits": [{"block_db_id": blk["db_id"], "user_bbox": nb}]}, "POST")
+    check("freeze user_bbox 应用", r.get("applied") == 1 and not r.get("rejected"), str(r)[:90])
+    st3 = fetch("/api/state?sheet=" + _up.quote(sh2))
+    blk3 = next(b for b in st3["blocks"] if b["id"] == blk["id"])
+    check("state 反映生效范围", blk3["bbox"] == nb and blk3.get("engine_bbox") == orig,
+          f"{blk3['bbox']} vs {nb}, engine {blk3.get('engine_bbox')} vs {orig}")
+    r = fetch("/api/freeze", {"edits": [{"block_db_id": blk["db_id"],
+                                         "user_bbox": [9, 9, 99999, 9]}]}, "POST")
+    check("越界范围被拒", bool(r.get("rejected")), str(r)[:80])
+    fetch("/api/open", {"path": SAMPLE}, "POST")
 
     print("\n── B5. 会话与问答（规则引擎路径，不依赖 LLM） ──")
     r = fetch("/api/ask", {"question": "金额列合计", "sheet": "销售部"}, "POST")

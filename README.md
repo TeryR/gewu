@@ -59,6 +59,7 @@ python cli.py
 ## Key Features
 
 - **Safe write-back** — natural language edit instructions, 8 hard validations, diff preview, auto-backup, one-click undo. The LLM never does arithmetic; it only selects the operation mode and copies the operand.
+- **Human-in-the-loop fixes** — wrong block type? Switch it. Wrong frame (too small / split)? Select the block and drag its edges — headers and records are re-detected inside your range. Fixes survive reopens and file takeovers.
 - **Bilingual AI output** — switch the UI between 中文/English; AI responses follow the selected language.
 - **File tabs** — open multiple workbooks in one window, 0.05s tab switching with fingerprint validation.
 - **Business rules** — set value ranges per column (e.g. `quantity 0–100`), violations blocked or flagged, one-click full-data health check.

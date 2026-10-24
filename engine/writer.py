@@ -342,14 +342,24 @@ def post_check(ops, path, db, workbook_id) -> dict:
                             f"期望 {want!r} 实读 {got!r}")
     con = sqlite3.connect(db)
     con.row_factory = sqlite3.Row
-    before_blocks = {(r["sheet_name"], tuple([r["r1"], r["c1"], r["r2"], r["c2"]]))
-                     for r in con.execute(
-                         "SELECT * FROM blocks WHERE workbook_id=? AND type='table'",
-                         (workbook_id,))}
+    # before = 冻结镜像里的生效几何（含人工调整 user_bbox）
+    before_blocks, user_geoms = set(), {}
+    for r in con.execute(
+            "SELECT * FROM blocks WHERE workbook_id=? AND type='table'", (workbook_id,)):
+        eff = json.loads(r["user_bbox"]) if r["user_bbox"] else             [r["r1"], r["c1"], r["r2"], r["c2"]]
+        before_blocks.add((r["sheet_name"], tuple(eff)))
+        if r["user_bbox"]:
+            # 引擎 block_id 同文件确定性生成：重分割后套用同一人工范围再比对
+            user_geoms[(r["sheet_name"], r["block_id"])] = eff
     con.close()
     for name in {op["sheet"] for op in ops}:
         seg = segment_sheet(sheets[name])
-        after_blocks = {(name, tuple(b["bbox"])) for b in seg["blocks"] if b["type"] == "table"}
+        after_blocks = set()
+        for b in seg["blocks"]:
+            if b["type"] != "table":
+                continue
+            eff = user_geoms.get((name, b["id"]), b["bbox"])
+            after_blocks.add((name, tuple(eff)))
         gone = {k for k in before_blocks if k[0] == name} - after_blocks
         if gone:
             problems.append(f"[{name}] 区块结构漂移：丢失 {sorted(gone)}")
