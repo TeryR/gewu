@@ -50,7 +50,7 @@ Every golden file is a regression test: if a change alters how any challenge is 
 git clone https://github.com/TeryR/gewu.git
 cd gewu
 pip install -r requirements.txt
-cp llm.json.example llm.json   # add your API key (OpenAI-compatible endpoints work)
+cp llm.json.example llm.json   # optional — or just set your provider in the app's Settings panel
 python cli.py
 ```
 
