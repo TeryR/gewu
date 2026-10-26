@@ -44,7 +44,7 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
  <div data-i18n-html="help_full" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;max-width:660px;width:92%;max-height:82vh;overflow:auto;padding:20px 26px;font-size:13.5px;line-height:1.75;box-shadow:0 10px 40px rgba(0,0,0,.25)">
   <div style="display:flex;align-items:center;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin-bottom:4px">
     <b style="font-size:16.5px">使用注意事项</b>
-    <button onclick="document.getElementById('helpBox').style.display='none'" style="margin-left:auto">关闭 ✕</button>
+    <button onclick="document.getElementById('helpBox').style.display='none'" style="margin-left:auto" data-i18n="llm_close">关闭 ✕</button>
   </div>
 
   <div style="margin:12px 0 4px;font-weight:700;color:#1d4ed8">① 冻结是什么</div>
@@ -130,28 +130,28 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
     <button onclick="document.getElementById('llmBox').style.display='none'" style="margin-left:auto" data-i18n="llm_close">关闭 ✕</button></div>
   <div style="margin:10px 0 4px"><b data-i18n="llm_preset_h">预设</b>
     <select id="llmPreset" onchange="applyPreset()" style="width:100%;font-size:13px;padding:5px;margin-top:3px">
-      <option value="">— 选择预设自动填充 —</option>
-      <option value="siliconflow">SiliconFlow（硅基流动）</option>
+      <option value="" data-i18n="llm_preset_ph">— 选择预设自动填充 —</option>
+      <option value="siliconflow">SiliconFlow 硅基流动</option>
       <option value="openai">OpenAI</option>
-      <option value="deepseek">DeepSeek 官方</option>
-      <option value="glm">智谱 GLM</option>
+      <option value="deepseek">DeepSeek</option>
+      <option value="glm">GLM 智谱</option>
       <option value="anthropic">Anthropic Claude</option>
-      <option value="ollama">Ollama（本地）</option>
-      <option value="lmstudio">LM Studio（本地）</option>
-      <option value="custom">自定义（OpenAI 兼容）</option>
+      <option value="ollama">Ollama (local · 本地)</option>
+      <option value="lmstudio">LM Studio (local · 本地)</option>
+      <option value="custom">Custom (OpenAI-compatible · 自定义)</option>
     </select></div>
   <div style="display:grid;grid-template-columns:110px 1fr;gap:6px 8px;margin-top:8px;align-items:center">
     <b data-i18n="llm_proto">协议</b>
     <select id="llmProto" style="font-size:13px;padding:5px">
-      <option value="openai">OpenAI 兼容</option>
-      <option value="anthropic">Anthropic 兼容</option>
+      <option value="openai">OpenAI-compatible</option>
+      <option value="anthropic">Anthropic-compatible</option>
     </select>
     <b data-i18n="llm_base">接口地址</b>
     <input id="llmBase" placeholder="https://api.siliconflow.cn/v1" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
     <b data-i18n="llm_model">模型名</b>
     <input id="llmModel" placeholder="deepseek-ai/DeepSeek-V4-Flash" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
     <b data-i18n="llm_key">API Key</b>
-    <input id="llmKey" type="password" placeholder="sk-...（本地模型可留空）" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
+    <input id="llmKey" type="password" data-i18n-ph="llm_key_ph" placeholder="sk-...（本地模型可留空）" style="font-size:13px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
   </div>
   <div class="hint" style="font-size:11.5px;margin-top:6px" data-i18n="llm_privacy">密钥只保存在本机 llm.json，请求直连你所选的服务商；不配置则问答走内置纯代码引擎。</div>
   <div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding:6px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px">
@@ -169,8 +169,8 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
 <div id="openBox" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50" onclick="if(event.target===this)this.style.display='none'">
  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;max-width:520px;width:90%;padding:22px 26px;font-size:13.5px;box-shadow:0 10px 40px rgba(0,0,0,.25)">
   <div style="display:flex;align-items:center"><b style="font-size:15px" data-i18n="open_title">📂 打开文件</b>
-    <button onclick="document.getElementById('openBox').style.display='none'" style="margin-left:auto">关闭 ✕</button></div>
-  <div style="margin:12px 0 4px"><b data-i18n="open_path_h">① 文件路径</b><span class="hint">（写回原文件，推荐）</span>
+    <button onclick="document.getElementById('openBox').style.display='none'" style="margin-left:auto" data-i18n="llm_close">关闭 ✕</button></div>
+  <div style="margin:12px 0 4px"><b data-i18n="open_path_h">① 文件路径</b><span class="hint" data-i18n="open_path_note">（写回原文件，推荐）</span>
     <div class="hint" style="font-size:11.5px"><span data-i18n="open_path_hint">在资源管理器按住 Shift 右键文件 →「复制文件地址」粘贴到这。改数直接写回这个原文件。</span></div></div>
   <div style="display:flex;gap:6px">
     <input id="openPath" data-i18n-ph="open_ph" placeholder="C:\Users\...\表.xlsx" style="flex:1;padding:6px 10px;font-size:13px;border:1px solid #cbd5e1;border-radius:6px">
@@ -193,8 +193,8 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
 <div id="appBody">
 <div id="stage"><div id="gridWrap"><table id="grid"></table>
   <div id="overlays"></div></div></div>
-<button id="panelExpand" style="display:none" title="展开面板">»</button>
-<div id="panelHandle" title="拖动调宽窄"></div>
+<button id="panelExpand" style="display:none" data-i18n-t="panel_expand_tt" title="展开面板">»</button>
+<div id="panelHandle" data-i18n-t="panel_drag_tt" title="拖动调宽窄"></div>
 <div id="sidePanel">
   <div id="ptabs">
     <button class="ptab on" data-p="review" data-i18n="tab_review">📋 审阅</button>
@@ -241,14 +241,14 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
       <button class="toolBtn" title="新对话" data-i18n-t="sess_new" onclick="newChat()">＋</button>
     </div>
     <div id="scopePop">
-      <div class="hint" style="font-size:11px;margin-bottom:4px">点击选择范围（可多选 sheet）</div>
+      <div class="hint" style="font-size:11px;margin-bottom:4px" data-i18n="scope_hint">点击选择范围（可多选 sheet）</div>
       <div id="scopeChips" style="display:flex;flex-wrap:wrap;gap:3px;max-height:200px;overflow:auto"></div>
     </div>
-    <div id="sessPop"><div id="sessionList" class="hint">（尚无会话）</div></div>
+    <div id="sessPop"><div id="sessionList" class="hint" data-i18n="sess_none">（尚无会话）</div></div>
     <div id="chatLog"><div class="a hint" data-i18n="chat_hint">问数值（合计/最高的）→ 引擎计算；问理解（这表是做什么的/为什么这么算）→ LLM 解读；问评价（分析一下）→ 数据解读。追问自动带最近 4 轮上下文。</div></div>
     <div class="askRow">
       <input id="askBox" data-i18n-ph="ask_ph" placeholder="问：销售额合计 / 这表是做什么的 / 分析评价一下 （回车发送）" style="flex:1;min-width:0;padding:6px 10px;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();doAsk()}">
-      <button class="primary" onclick="doAsk()">问</button>
+      <button class="primary" onclick="doAsk()" data-i18n="ask_btn">问</button>
     </div>
   </div>
   <div id="p-write" class="pane">
@@ -261,18 +261,18 @@ fetch('/api/branding').then(r=>r.json()).then(b=>{
     </div>
     <div id="diffCard" class="hint" data-i18n="diff_hint">语义解析 → 硬校验（冻结/表头/汇总行等全不许碰）→ diff 预览 → 确认执行</div>
     <div style="margin-top:8px"><b style="font-size:12.5px" data-i18n="write_log">最近写入</b>
-      <div id="writeLog" class="hint" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;flex:1;overflow:auto;font-size:12px">（切到本页签时加载）</div></div>
+      <div id="writeLog" class="hint" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;flex:1;overflow:auto;font-size:12px" data-i18n="load_on_switch">（切到本页签时加载）</div></div>
   </div>
   <div id="p-history" class="pane">
     <div style="display:flex;align-items:center;gap:8px">
       <b style="font-size:13px" data-i18n="hist_h">本文件的会话</b>
       <button style="margin-left:auto;font:11px system-ui;padding:2px 8px" onclick="clearSessions();loadHistList()" data-i18n="hist_clear">清空全部</button>
     </div>
-    <div id="histList" class="hint" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;max-height:180px;overflow:auto;font-size:12.5px">（切到本页签时加载）</div>
+    <div id="histList" class="hint" style="border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;max-height:180px;overflow:auto;font-size:12.5px" data-i18n="load_on_switch">（切到本页签时加载）</div>
     <div style="margin-top:10px"><b style="font-size:13px" data-i18n="hist_search_h">🔎 搜全部文件的历史</b>
       <div style="display:flex;gap:4px;margin-top:4px">
         <input id="histSearch" data-i18n-ph="hist_ph" placeholder="关键词（跨工作簿检索，只读参考）" style="flex:1;min-width:0;padding:5px 10px;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();doHistSearch()}">
-        <button onclick="doHistSearch()">搜</button>
+        <button onclick="doHistSearch()" data-i18n="search_btn">搜</button>
       </div>
       <div id="histResults" class="hint" style="margin-top:6px;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;flex:1;overflow:auto;font-size:12.5px"></div>
     </div>

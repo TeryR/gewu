@@ -8,7 +8,7 @@ async function loadSheets(){
   SHEETS=sheets;
   renderScope();loadSessions();refreshLLMCfg();
   const sel=document.getElementById('sheetSel');
-  sel.innerHTML=sheets.map(s=>`<option value="${esc(s.name)}">${s.visible?'':'[隐] '}${esc(s.name)}</option>`).join('');
+  sel.innerHTML=sheets.map(s=>`<option value="${esc(s.name)}">${s.visible?'':'['+t('m_hidden_sheet')+'] '}${esc(s.name)}</option>`).join('');
   sel.onchange=()=>loadState(sel.value);
   loadState(sheets[0].name);
   refreshStatus();
@@ -21,7 +21,7 @@ async function refreshStatus(){
   el.textContent=st.status==='frozen'?t('status_frozen_pre')+st.frozen_at:t('status_parsed');
   el.className=st.status==='frozen'?'frozen':'';
   window.COPY=!!st.copy;
-  document.getElementById('wbName').textContent=(S?S.workbook.path:'')+(st.copy?'〔副本〕':'');
+  document.getElementById('wbName').textContent=(S?S.workbook.path:'')+(st.copy?t('m_copy_badge'):'');
   document.getElementById('exportBtn').style.display=st.copy?'':'none';
   const bar=document.getElementById('changeBar');
   const ch=st.change;
@@ -48,10 +48,10 @@ function render(){
     for(let r=m[0];r<=m[2];r++)for(let c=m[1];c<=m[3];c++)if(!(r==m[0]&&c==m[1]))covered.add(`${r},${c}`)});
   const hr=new Set(S.hidden_rows), hc=new Set(S.hidden_cols);
   let html='<tr><td class="hcol hrow"></td>';
-  for(let c=c1;c<=c2;c++)html+=`<td class="hcol">${hc.has(c)?'⟨隐⟩':''}${colName(c)}</td>`;
+  for(let c=c1;c<=c2;c++)html+=`<td class="hcol">${hc.has(c)?t('m_hidden_cell'):''}${colName(c)}</td>`;
   html+='</tr>';
   for(let r=r1;r<=r2;r++){
-    html+=`<tr><td class="hrow">${hr.has(r)?'⟨隐⟩':''}${r}</td>`;
+    html+=`<tr><td class="hrow">${hr.has(r)?t('m_hidden_cell'):''}${r}</td>`;
     for(let c=c1;c<=c2;c++){
       if(covered.has(`${r},${c}`))continue;
       const cell=S.cells[`${r},${c}`]; const m=topleft[`${r},${c}`];
@@ -387,17 +387,17 @@ async function doOpenPath(){
   err.textContent=t('open_parsing');
   const r=await (await fetch('/api/open',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({path:p})})).json();
-  if(!r.ok){err.textContent=r.reason||'打开失败';return}
+  if(!r.ok){err.textContent=r.reason||t('open_fail');return}
   document.getElementById('openBox').style.display='none';
   await reloadForNewFile();syncTabs();
 }
 async function doOpenUpload(){
   const f=document.getElementById('openFile').files[0];if(!f)return;
-  const st=document.getElementById('openUpState');st.textContent='上传中…';
+  const st=document.getElementById('openUpState');st.textContent=t('uploading');
   const buf=await f.arrayBuffer();
   const r=await (await fetch('/api/upload?name='+encodeURIComponent(f.name),{method:'POST',
     body:buf})).json();
-  if(!r.ok){st.textContent=r.reason||'上传失败';return}
+  if(!r.ok){st.textContent=r.reason||t('upload_fail');return}
   st.textContent=t('parsing');
   await reloadForNewFile();syncTabs();
 }
@@ -441,9 +441,9 @@ function showDetail(b){
   if(h.floating_rows&&h.floating_rows.length)rows+=`<b>${t('d_float')}</b><span>r${h.floating_rows.join(',r')}</span>`;
   if(h.summary_rows&&h.summary_rows.length)rows+=`<b>${t('d_summary')}</b><span>r${h.summary_rows.join(',r')}${t('d_summary_prot')}</span>`;
   if(h.dup_header_names&&h.dup_header_names.length)rows+=`<b>${t('d_dups')}</b><span>${h.dup_header_names.join('、')}</span>`;
-  if(h.cross_tab)rows+=`<b>${t('d_cross')}</b><span>是</span>`;
+  if(h.cross_tab)rows+=`<b>${t('d_cross')}</b><span>${t('d_yes')}</span>`;
   if(h.col_tree)rows+=`<b>${t('d_fields')}</b><span>${h.col_tree.filter(n=>n.path&&n.path.length).length} ${t('d_leaves')}</span>`;
-  if(b.signals&&!b.annotation)rows+=`<b>${t('d_signal')}</b><span>文本${b.signals.text_r} 数值${b.signals.num_r} 边框${b.signals.perimeter_border}</span>`;
+  if(b.signals&&!b.annotation)rows+=`<b>${t('d_signal')}</b><span>${t('d_sig_text')}${b.signals.text_r} ${t('d_sig_num')}${b.signals.num_r} ${t('d_sig_border')}${b.signals.perimeter_border}</span>`;
   if(b.annotation)rows+=`<b>${t('d_anno')}</b><span>${t('d_anno_v')}</span>`;
   if(b.attach){
     rows+=`<b>${t('attach_h')}</b><span>${t('attach_full').replace('{id}',b.attach.table_block_id).replace('{r}',b.attach.row_no)}<br>
@@ -571,7 +571,7 @@ async function doDetach(blockId){
     body:JSON.stringify({sheet:S.sheet,block_id:blockId})})).json();
   if(r.ok){S=await (await fetch('/api/state?sheet='+encodeURIComponent(S.sheet))).json();
     sel=blockId;const b=S.blocks.find(x=>x.id===blockId);if(b)showDetail(b);drawOverlays();}
-  else alert('取消失败：'+(r.reason||''));
+  else alert(t('detach_fail')+(r.reason||''));
 }
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 
@@ -733,7 +733,24 @@ const I18N={
   ops_h:'操作',pend_h:'已改(未冻结)',pend_type:'切为',pend_ro:'设为只读🔒',pend_rw:'设为可写🔓',
   revert_btn:'↩ 撤销本块修改',revert_tt:'撤销这块的全部未冻结修改',
   gl_ph:'口径注释…',gl_save:'存',gl_hint:'口径注释会自动注入问答与写指令的模型上下文（同名不同口径的列靠它消歧）',
-  glossary_init:'选中数据表区块后可给字段加口径注释',rules_init:'（选中数据表后可配置）'
+  glossary_init:'选中数据表区块后可给字段加口径注释',rules_init:'（选中数据表后可配置）',
+  m_hidden_sheet:'隐', m_copy_badge:'〔副本〕', m_hidden_cell:'⟨隐⟩',
+  open_fail:'打开失败', uploading:'上传中…', upload_fail:'上传失败',
+  d_yes:'是', d_sig_text:'文本', d_sig_num:'数值', d_sig_border:'边框',
+  detach_fail:'取消失败：', s_untitled:'(未命名)', m_sheets:'表', s_del_tt:'删除本会话',
+  m_q:'问：', tag_fb:'⚙️(LLM挂,规则兜底)',
+  wp_none:'未生成写计划', wp_cand:'候选：', wp_copy_note:'⚠ <b>副本模式</b>：本次写入只进副本。要发给别人的成品，写完点页眉<b>「📥 导出改后文件」</b>下载，别发原上传的文件。',
+  wp_title:'✏️ 写计划', wp_locate:'📍 定位到表格',
+  v_allpass:'✓ 硬校验全部通过', v_reject:'✗ 拒绝：',
+  wm_set:'改为',wm_add:'加',wm_sub:'减',wm_mul:'乘',wm_div:'除',wm_add_pct:'涨%',wm_sub_pct:'降%',
+  wr_ok_pre:'✓ 已写入（',wr_ok_mid:'，备份 ',wr_ok_suf:'）写后校验通过。',
+  wr_copy_hint:'改动在副本上——点此拿到成品：', wr_undo_hint:'出错了可点「撤销最近写入」。',
+  wr_fail:'✗ 执行失败：', wr_undone_pre:'↩ 已撤销 ',wr_undone_suf:' 格（',wr_undone_end:'）', wr_none:'无可撤销',
+  boot_fail:'⚠ 解析失败：', boot_unknown:'未知原因', boot_hint:'请确认文件是有效的 .xlsx（.xls/.csv 暂不支持），或换一个文件重试。',
+  llm_preset_ph:'— 选择预设自动填充 —', llm_key_ph:'sk-...（本地模型可留空）',
+  panel_expand_tt:'展开面板', panel_drag_tt:'拖动调宽窄', scope_hint:'点击选择范围（可多选 sheet）',
+  sess_none:'（尚无会话）', ask_btn:'问', search_btn:'搜',
+  doc_title:'格物 Gewu · 复杂表格理解工作台', open_path_note:'（写回原文件，推荐）'
  },
  "en":{
   brand_tag:"Intelligence workbench for complex spreadsheets", mask:"Mask", opacity:"Opacity",
@@ -830,13 +847,31 @@ const I18N={
    ops_h:'Actions',pend_h:'Changed (not frozen)',pend_type:'switch to ',pend_ro:'set read-only 🔒',pend_rw:'set writable 🔓',
    revert_btn:'↩ Revert this block',revert_tt:'Revert all unfrozen changes of this block',
    gl_ph:'definition…',gl_save:'Save',gl_hint:'Definitions are injected into the LLM context of Q&A and edit commands (disambiguates same-named columns)',
-   glossary_init:'Select a table block to add field definitions',rules_init:'(select a table block to configure)'
+   glossary_init:'Select a table block to add field definitions',rules_init:'(select a table block to configure)',
+   m_hidden_sheet:'hidden', m_copy_badge:' [COPY]', m_hidden_cell:'⟨H⟩',
+   open_fail:'Failed to open', uploading:'Uploading…', upload_fail:'Upload failed',
+   d_yes:'Yes', d_sig_text:'text ', d_sig_num:'nums ', d_sig_border:'border ',
+   detach_fail:'Detach failed: ', s_untitled:'(untitled)', m_sheets:' sheets', s_del_tt:'Delete this session',
+   m_q:'Q: ', tag_fb:'⚙️(rules fallback)',
+   wp_none:'No write plan generated', wp_cand:'Candidates:', wp_copy_note:'⚠ <b>Copy mode</b>: this write goes to the copy only. For the finished file to share, click <b>“📥 Export edited file”</b> in the header when done — do not send the originally uploaded file.',
+   wp_title:'✏️ Write plan', wp_locate:'📍 Locate in table',
+   v_allpass:'✓ All hard validations passed', v_reject:'✗ Rejected: ',
+   wm_set:'set to',wm_add:'add',wm_sub:'subtract',wm_mul:'multiply',wm_div:'divide',wm_add_pct:'increase %',wm_sub_pct:'decrease %',
+   wr_ok_pre:'✓ Written (',wr_ok_mid:', backup ',wr_ok_suf:') — post-write validation passed.',
+   wr_copy_hint:'Changes are on the copy — get the finished file here: ', wr_undo_hint:'If something went wrong, use “Undo recent write”.',
+   wr_fail:'✗ Execution failed: ', wr_undone_pre:'↩ Undone ',wr_undone_suf:' cells (',wr_undone_end:')', wr_none:'Nothing to undo',
+   boot_fail:'⚠ Parse failed: ', boot_unknown:'unknown reason', boot_hint:'Make sure the file is a valid .xlsx (.xls/.csv not supported yet), or try another file.',
+   llm_preset_ph:'— pick a preset to autofill —', llm_key_ph:'sk-... (optional for local models)',
+   panel_expand_tt:'Expand panel', panel_drag_tt:'Drag to resize', scope_hint:'Click to pick scope (multi-sheet allowed)',
+   sess_none:'(no sessions yet)', ask_btn:'Ask', search_btn:'Search',
+   doc_title:'Gewu · Spreadsheet understanding workbench', open_path_note:'(writes back to the original file — recommended)'
  }
 };
 let LANG=localStorage.getItem('gewu-lang')||'zh';
 function t(k){const d=I18N[LANG]&&I18N[LANG][k];return d!==undefined?d:(I18N.zh[k]??k)}
 function applyLang(){
   document.documentElement.lang=LANG==='en'?'en':'zh';
+  document.title=t('doc_title');
   document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n)});
   document.querySelectorAll('[data-i18n-html]').forEach(el=>{const k=el.dataset.i18nHtml;
     if(!el.dataset.orig)el.dataset.orig=el.innerHTML;      // zh=DOM 原文，避免长文重复维护
@@ -915,12 +950,12 @@ async function loadSessions(){
   const list=await (await fetch('/api/sessions')).json();
   const el=document.getElementById('sessionList');
   const cur=list.find(s=>s.id===CUR_SESSION);
-  document.getElementById('curTitle').textContent=cur?(cur.title||'(untitled)'):t('cur_title_empty');
+  document.getElementById('curTitle').textContent=cur?(cur.title||t('s_untitled')):t('cur_title_empty');
   if(!list.length){el.innerHTML=`<div class="hint">${t('hist_empty')}</div>`;return}
   el.innerHTML=list.map(s=>`<div class="sItem${s.id===CUR_SESSION?' on':''}" onclick="switchSession(${s.id})">
-    <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.title||'(未命名)')}</div>
-    <div class="hint" style="font-size:11px">${s.updated_at||''}${s.scope?' · '+s.scope.length+'表':''}</div>
-    <button class="sDel" title="删除本会话" onclick="event.stopPropagation();delSession(${s.id})">✕</button></div>`).join('');
+    <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.title||t('s_untitled'))}</div>
+    <div class="hint" style="font-size:11px">${s.updated_at||''}${s.scope?' · '+s.scope.length+t('m_sheets'):''}</div>
+    <button class="sDel" title="${t('s_del_tt')}" onclick="event.stopPropagation();delSession(${s.id})">✕</button></div>`).join('');
 }
 async function switchSession(id){
   const r=await (await fetch('/api/session_switch',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -929,7 +964,7 @@ async function switchSession(id){
   SCOPE=r.session.scope||null;renderScope();
   const log=document.getElementById('chatLog');
   log.innerHTML=(r.messages.length?'':`<div class="a hint">${t('sess_empty')}</div>`)+
-    r.messages.map(m=>m.role==='user'?`<div class="u">问：${esc(m.content)}</div>`
+    r.messages.map(m=>m.role==='user'?`<div class="u">${t('m_q')}${esc(m.content)}</div>`
       :`<div class="a">${mdRich(m.content)}</div>`).join('');
   log.scrollTop=log.scrollHeight;
   loadSessions();
@@ -949,7 +984,7 @@ async function loadHistList(){
   document.getElementById('histList').innerHTML=list.length?list.map(s=>
     `<div style="display:flex;gap:6px;padding:4px 2px;border-bottom:1px solid #f1f5f9">
       <div style="flex:1;cursor:pointer" onclick="showPane('chat');switchSession(${s.id})">
-      <b>${esc(s.title||'(未命名)')}</b> <span class="hint">${s.updated_at||''}</span></div>
+      <b>${esc(s.title||t('s_untitled'))}</b> <span class="hint">${s.updated_at||''}</span></div>
       <button style="border:0;background:transparent;color:#dc2626;cursor:pointer" onclick="delSession(${s.id});loadHistList()">✕</button></div>`).join('')
     :t('hist_none');
 }
@@ -972,12 +1007,12 @@ async function doAsk(){
   const q=box.value.trim();if(!q)return;
   box.value='';box.focus();  // 发送瞬间清空并聚焦，不等回答
   const log=document.getElementById('chatLog');
-  log.insertAdjacentHTML('beforeend',`<div class="u">问：${esc(q)}</div>`);
+  log.insertAdjacentHTML('beforeend',`<div class="u">${t('m_q')}${esc(q)}</div>`);
   log.scrollTop=log.scrollHeight;
   const r=await (await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({question:q,sheet:S?S.sheet:null,scope:SCOPE,session_id:CUR_SESSION,lang:LANG})})).json();
   if(r.session_id)CUR_SESSION=r.session_id;
-  const tag=r.source==='llm'?'🤖':(r.source==='rules-fallback'?'⚙️(LLM挂,规则兜底)':'⚙️');
+  const tag=r.source==='llm'?'🤖':(r.source==='rules-fallback'?t('tag_fb'):'⚙️');
   log.insertAdjacentHTML('beforeend',`<div class="a">${tag} ${mdRich(String(r.answer??r).slice(0,1200))}</div>`);
   log.scrollTop=log.scrollHeight;
   loadSessions();
@@ -986,31 +1021,31 @@ let pendingOp=null,pendingOpSaved=null;
 async function doPlanWrite(mode){
   const text=document.getElementById('writeBox').value.trim();if(!text)return;
   const card=document.getElementById('diffCard');
-  card.className='';card.textContent='解析中…';
+  card.className='';card.textContent=t('parsing');
   const r=await (await fetch('/api/plan_write',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({mode,text})})).json();
   if(!r.ok){
     pendingOp=null;
     card.className='bad';
-    card.innerHTML=`<b>未生成写计划</b><br>${esc(r.clarify||JSON.stringify(r).slice(0,200))}`+
-      (r.candidates?`<br>候选：<br>${r.candidates.map(c=>'· '+esc(c.via)+' @r'+c.row).join('<br>')}`:'');
+    card.innerHTML=`<b>${t('wp_none')}</b><br>${esc(r.clarify||JSON.stringify(r).slice(0,200))}`+
+      (r.candidates?`<br>${t('wp_cand')}<br>${r.candidates.map(c=>'· '+esc(c.via)+' @r'+c.row).join('<br>')}`:'');
     return;
   }
   pendingOp=r.op;pendingOpSaved=r.op;window.__lastDeps=r.deps||[];
   const v=r.validation;
   card.className=v.ok?'ok':'bad';
-  const modeZh={set:'改为',add:'加',sub:'减',mul:'乘',div:'除',add_pct:'涨%',sub_pct:'降%'};
+  const modeZh={set:t('wm_set'),add:t('wm_add'),sub:t('wm_sub'),mul:t('wm_mul'),div:t('wm_div'),add_pct:t('wm_add_pct'),sub_pct:t('wm_sub_pct')};
   card.innerHTML=
    (window.COPY?`<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;
       padding:4px 8px;margin-bottom:6px;font-size:12px;color:#92400e">
-      ⚠ <b>副本模式</b>：本次写入只进副本。要发给别人的成品，写完点页眉<b>「📥 导出改后文件」</b>下载，别发原上传的文件。</div>`:'')+
+      ${t('wp_copy_note')}</div>`:'')+
    (r.hit&&Object.keys(r.hit).length?`<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:4px 0">
      <span class="hint" style="font-size:11px">${t('hit_row')}</span>`+
      Object.entries(r.hit).map(([k,vv])=>`<span style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:0 8px;font-size:11px">${esc(k)}=${esc(String(vv).slice(0,14))}</span>`).join('')+`</div>`:'')+
    `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-     <b>✏️ 写计划</b><span class="hint">${esc(r.via||'')}</span>
+     <b>${t('wp_title')}</b><span class="hint">${esc(r.via||'')}</span>
      ${r.op.mode&&modeZh[r.op.mode]?`<span style="background:#e0e7ff;border-radius:8px;padding:0 8px;font-size:11.5px">${modeZh[r.op.mode]}</span>`:''}
-     <button style="margin-left:auto;font-size:11px" onclick="locateCell('${esc(r.op.sheet)}',${r.op.row},${r.op.col})">📍 定位到表格</button></div>
+     <button style="margin-left:auto;font-size:11px" onclick="locateCell('${esc(r.op.sheet)}',${r.op.row},${r.op.col})">${t('wp_locate')}</button></div>
    <div style="display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap">
      <span class="hint">${esc(r.op.sheet)}!r${r.op.row}c${r.op.col}</span>
      <span style="background:#fee2e2;color:#b91c1c;border-radius:6px;padding:2px 10px;font-weight:600">${esc(String(r.old??'∅'))}</span>
@@ -1018,12 +1053,12 @@ async function doPlanWrite(mode){
      <span style="background:#dcfce7;color:#15803d;border-radius:6px;padding:2px 10px;font-weight:700">${esc(String(r.op.value))}</span>
    </div>`+
    (r.deps&&r.deps.length?`<div style="color:#7c3aed;font-size:12px">🔗 ${t('dep_pre')}${r.deps.length}${t('dep_suf')}（r${r.deps[0].row}c${r.deps[0].col} ${esc(r.deps[0].formula)}）</div>`:'')+
-   (v.ok?`<div style="color:#15803d">✓ 硬校验全部通过</div>`:
-        `<div style="color:#b91c1c">✗ 拒绝：${v.rejections.map(esc).join('；')}</div>`)+
-   (v.warnings.length?`<div style="color:#b45309">⚠ ${v.warnings.map(esc).join('；')}</div>`:'')+
+   (v.ok?`<div style="color:#15803d">${t('v_allpass')}</div>`:
+        `<div style="color:#b91c1c">${t('v_reject')}${v.rejections.map(esc).join(LANG==='en'?'; ':'；')}</div>`)+
+   (v.warnings.length?`<div style="color:#b45309">⚠ ${v.warnings.map(esc).join(LANG==='en'?'; ':'；')}</div>`:'')+
    (v.ok?`<div style="display:flex;gap:6px;margin-top:8px">
-      <button class="primary" onclick="doExec()">确认写入（COM，自动备份）</button>
-      <button onclick="pendingOp=null;document.getElementById('diffCard').innerText=t('v_cancelled')">取消</button></div>`:'');
+      <button class="primary" onclick="doExec()">${t('v_confirm')}</button>
+      <button onclick="pendingOp=null;document.getElementById('diffCard').innerText=t('v_cancelled')">${t('v_cancel')}</button></div>`:'');
   locateCell(r.op.sheet,r.op.row,r.op.col);
 }
 async function locateCell(sheet,row,col){
@@ -1043,17 +1078,17 @@ async function doExec(){
   const card=document.getElementById('diffCard');
   card.className=r.ok?'ok':'bad';
   card.innerHTML=r.ok
-    ?`✓ 已写入（${esc(r.engine)}，备份 ${esc(r.backup)}）写后校验通过。`+
+    ?`${t('wr_ok_pre')}${esc(r.engine)}${t('wr_ok_mid')}${esc(r.backup)}${t('wr_ok_suf')}`+
       (window.__lastDeps&&window.__lastDeps.length?
         (r.deps_changed&&r.deps_changed.length?
           `<br><span style="color:#7c3aed;font-size:12px">🔗 ${t('dep_done_pre')}r`+
-          r.deps_changed.slice(0,4).map(d=>`${d.row}c${d.col}`).join('、')+
+          r.deps_changed.slice(0,4).map(d=>`${d.row}c${d.col}`).join(LANG==='en'?', ':'、')+
           `${t('dep_done_suf')}</span>`:
           `<br><span style="color:#b45309;font-size:12px">${t('dep_unchanged')}</span>`):'')+
-      (window.COPY?`<br><b style="color:#92400e">改动在副本上——点此拿到成品：</b>
-        <a href="/api/export" download style="color:#d97706;font-weight:700">📥 导出改后文件</a>`:'')+
-      `<br>出错了可点「撤销最近写入」。`
-    :`✗ 执行失败：${esc(r.reason||JSON.stringify(r).slice(0,200))}`;
+      (window.COPY?`<br><b style="color:#92400e">${t('wr_copy_hint')}</b>
+        <a href="/api/export" download style="color:#d97706;font-weight:700">${t('export_btn')}</a>`:'')+
+      `<br>${t('wr_undo_hint')}`
+    :`${t('wr_fail')}${esc(r.reason||JSON.stringify(r).slice(0,200))}`;
   pendingOp=null;loadState(document.getElementById('sheetSel').value);
   if(r.ok){const op=r.op||pendingOpSaved; if(op){locateCell(op.sheet,op.row,op.col).then(()=>{
     const td=anchorCell(op.row,op.col);if(td){td.classList.remove('flashCell');
@@ -1063,7 +1098,7 @@ async function doUndo(){
   const r=await (await fetch('/api/undo',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
   const log=document.getElementById('chatLog');
   log.insertAdjacentHTML('beforeend',
-    `<div class="a">${r.ok?'↩ 已撤销 '+r.restored+' 格（'+esc(r.engine)+'）':esc(r.reason||'无可撤销')}</div>`);
+    `<div class="a">${r.ok?t('wr_undone_pre')+r.restored+t('wr_undone_suf')+esc(r.engine)+t('wr_undone_end'):esc(r.reason||t('wr_none'))}</div>`);
   loadState(document.getElementById('sheetSel').value);
 }
 window.addEventListener('resize',()=>S&&drawOverlays());
@@ -1137,7 +1172,7 @@ async function bootWait(){
     try{b=await (await fetch('/api/boot')).json()}catch(e){}
     if(b&&b.ready){ov.remove();loadSheets();return}
     if(b&&b.phase==='failed'){
-      ov.querySelector('#bootMsg').innerHTML='⚠ 解析失败：'+(b.error||'未知原因')+'<br><span style="font-size:12px;color:#64748b">请确认文件是有效的 .xlsx（.xls/.csv 暂不支持），或换一个文件重试。</span>';
+      ov.querySelector('#bootMsg').innerHTML=t('boot_fail')+(b.error||t('boot_unknown'))+`<br><span style="font-size:12px;color:#64748b">${t('boot_hint')}</span>`;
       ov.lastElementChild?.remove?.(); ov.querySelector('div[style*="gwspin"],div[style*="rotate"]')?.remove?.();
       return;
     }
